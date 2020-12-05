@@ -34,8 +34,9 @@ class Interface
             Serial.println(value);
             break;
         }
-      #endif
-   }
+      
+        }
+   #endif
    return value;
   };
 

@@ -45,7 +45,7 @@ void loop() {
     int value = interface->checkInput();
     int value_a; 
     int value_b;
-    int value_c;
+    int value_c;   //throttle
     int value_d;
     receiver->checkInput(&value_a, &value_b, &value_c, &value_d );
     #ifdef debug
