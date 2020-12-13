@@ -131,27 +131,21 @@ class Gyro
         gyro_angle_yaw = 0;
         gyro_signalen();
         timer = millis() + 10000;    
-        int type = 1;
+        int type = 2;
         while(timer > millis() && gyro_angle_roll > -30 && gyro_angle_roll < 30 && gyro_angle_pitch > -30 && gyro_angle_pitch < 30 && gyro_angle_yaw > -30 && gyro_angle_yaw < 30){
             gyro_signalen();
-            Serial.print(gyro_roll);
-            Serial.print("\t");
-            Serial.print(gyro_pitch);
-            Serial.print("\t");
-            Serial.print(gyro_yaw);
-            Serial.print("\n");
-            
-            
+            //print_gyro();
             if(type == 2 || type == 3){
-            gyro_angle_roll += gyro_roll * 0.00007;              //0.00007 = 17.5 (md/s) / 250(Hz)
-            gyro_angle_pitch += gyro_pitch * 0.00007;
-            gyro_angle_yaw += gyro_yaw * 0.00007;
+            gyro_angle_roll += gyro_roll;// * 0.00007;              //0.00007 = 17.5 (md/s) / 250(Hz)
+            gyro_angle_pitch += gyro_pitch;// * 0.00007;
+            gyro_angle_yaw += gyro_yaw;// * 0.00007;
             }
             if(type == 1){
             gyro_angle_roll += gyro_roll * 0.0000611;          // 0.0000611 = 1 / 65.5 (LSB degr/s) / 250(Hz)
             gyro_angle_pitch += gyro_pitch * 0.0000611;
             gyro_angle_yaw += gyro_yaw * 0.0000611;
             }
+            
             
             delayMicroseconds(3700); //Loop is running @ 250Hz. +/-300us is used for communication with the gyro
         }
@@ -184,9 +178,20 @@ class Gyro
     };
 
     void gyro_signalen(){
-        gyro_pitch = IMU.getGyroX_rads();
-        gyro_roll = IMU.getGyroY_rads();
+        IMU.readSensor();
+        gyro_pitch = IMU.getGyroY_rads();
+        gyro_roll = IMU.getGyroX_rads();
         gyro_yaw = IMU.getGyroZ_rads();
+        
+    };
+
+    void print_gyro(){
+        Serial.print(gyro_pitch,6);
+        Serial.print("\t");
+        Serial.print(gyro_roll,6);
+        Serial.print("\t");
+        Serial.print(gyro_yaw,6);
+        Serial.print("\n");
     };
 
     void read(){

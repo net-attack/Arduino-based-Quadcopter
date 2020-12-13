@@ -2,14 +2,15 @@ volatile int receiver_input_channel_1, receiver_input_channel_2, receiver_input_
 byte last_channel_1, last_channel_2, last_channel_3, last_channel_4;
 unsigned long timer, timer_1, timer_2, timer_3, timer_4, current_time;
 byte receiver_check_byte;
+int center_channel_1, center_channel_2, center_channel_3, center_channel_4;
+int high_channel_1, high_channel_2, high_channel_3, high_channel_4;
+int low_channel_1, low_channel_2, low_channel_3, low_channel_4;
+byte channel_1_assign, channel_2_assign, channel_3_assign, channel_4_assign;
 
 class Receiver
 {
   public:
-    int center_channel_1, center_channel_2, center_channel_3, center_channel_4;
-    int high_channel_1, high_channel_2, high_channel_3, high_channel_4;
-    int low_channel_1, low_channel_2, low_channel_3, low_channel_4;
-    byte channel_1_assign, channel_2_assign, channel_3_assign, channel_4_assign;
+    
 
 
     Receiver(){
