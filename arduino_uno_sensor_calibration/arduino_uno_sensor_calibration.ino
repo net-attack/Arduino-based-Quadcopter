@@ -166,6 +166,7 @@ void loop() {
             break;
        case PRE_FLIGHT_STORE_EEPROM:
             write_eeprom();
+            state = PRE_FLIGHT_CHECK_FINISHED;
             break;
        case PRE_FLIGHT_CHECK_ERROR:
             while(1){
@@ -173,6 +174,11 @@ void loop() {
               delay(1000);
             }
             break;
+       case PRE_FLIGHT_CHECK_FINISHED:
+            Serial.println(F("Finished with setup."));
+            while(1){
+
+            }
             
        default:
            break; 
