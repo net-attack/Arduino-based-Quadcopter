@@ -14,7 +14,9 @@ uint8_t error = 0;
 void setup(){
     Serial.begin(57600);
     delay(250);
-    state = PRE_FLIGHT_CHECK_GYRO;
+    state = PRE_FLIGHT_CHECK;
+    pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, LOW);
 }
 
 
@@ -132,6 +134,11 @@ void loop() {
             Serial.println(F("Move stick 'nose up' and back to center to continue"));
             receiver->check_to_continue();
             digitalWrite(13, LOW);
+            Serial.println(F("The LED should now be off"));
+            Serial.println(F("Move stick 'nose up' and back to center to continue"));
+            receiver->check_to_continue();
+            digitalWrite(13, LOW);
+            state = PRE_FLIGHT_FINAL_SETUP_TEST;
             break;
 
 
@@ -155,6 +162,7 @@ void loop() {
               Serial.println(F("Gyro exes verification failed!!! (ERROR 7)"));
               error = 1;
             }
+            state = PRE_FLIGHT_STORE_EEPROM;
             break;
        case PRE_FLIGHT_STORE_EEPROM:
             write_eeprom();
