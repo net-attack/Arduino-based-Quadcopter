@@ -26,24 +26,15 @@ class Receiver
     void wait_for_receiver(uint8_t* error){
       byte zero = 0;
       timer = millis() + 10000;
-      //while(timer > millis() && zero < 15){
-      Serial.println("CH1\tCH2\tCH3\tCH4");
-      while(1){
+      while(timer > millis() && zero < 15){
+      
         if(receiver_input_channel_1 < 2100 && receiver_input_channel_1 > 900)zero |= 0b00000001;
         if(receiver_input_channel_2 < 2100 && receiver_input_channel_2 > 900)zero |= 0b00000010;
         if(receiver_input_channel_3 < 2100 && receiver_input_channel_3 > 900)zero |= 0b00000100;
         if(receiver_input_channel_4 < 2100 && receiver_input_channel_4 > 900)zero |= 0b00001000;
-        Serial.print(receiver_input_channel_1);
-        Serial.print("\t");
-        Serial.print(receiver_input_channel_2);
-        Serial.print("\t");
-        Serial.print(receiver_input_channel_3);
-        Serial.print("\t");
-        Serial.print(receiver_input_channel_4);
-        Serial.print("\n");
         
-        //delay(500);
-        //Serial.print(F("."));
+        delay(500);
+        Serial.print(F("."));
       }
       if(zero == 0){
         *error = 1;

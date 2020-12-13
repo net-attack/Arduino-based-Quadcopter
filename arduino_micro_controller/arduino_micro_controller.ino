@@ -1,10 +1,11 @@
 #include "FlightStates.h"
 #include "Receiver.h"
-
+#include "Gyro.h"
 //#include "Engine.h"
 
 //Engine *engine;
 Receiver *receiver;
+Gyro *gyro;
 
 uint8_t state = 0; 
 uint8_t error = 0;
@@ -12,6 +13,7 @@ uint8_t error = 0;
 void setup(){
     Serial.begin(57600);
     delay(250);
+    state = PRE_FLIGHT_CHECK_GYRO;
 }
 
 
@@ -46,8 +48,6 @@ void loop() {
                state = PRE_FLIGHT_CHECK_ERROR; 
                break;
             }
-
-
 
             state = PRE_FLIGHT_CHECK_RECEIVER_ENDPOINT;
             break;
@@ -89,6 +89,32 @@ void loop() {
             Serial.println(receiver->high_channel_4);
             Serial.println(F("Move stick 'nose up' and back to center to continue"));
             receiver->check_to_continue();
+            state = PRE_FLIGHT_CHECK_GYRO;
+            Serial.println(F("Receiver Check Finished! \n ###################################"));
+            break;
+
+       case PRE_FLIGHT_CHECK_GYRO:
+            Serial.println(F("Gyro Check "));
+            gyro = new Gyro(receiver);
+            state = PRE_FLIGHT_CHECK_GYRO_CALIBRATION;
+
+            break;
+       case PRE_FLIGHT_CHECK_GYRO_CALIBRATION:
+            Serial.println(F("Gyro found!"));
+            gyro->calibrate(&error);
+            if(error != 0){
+               state = PRE_FLIGHT_CHECK_ERROR; 
+               break;
+            }
+            state = PRE_FLIGHT_CHECK_GYRO_CONFIGURATION;
+            break;
+       case PRE_FLIGHT_CHECK_GYRO_CONFIGURATION:
+            gyro->configure(&error);
+            if(error != 0){
+               state = PRE_FLIGHT_CHECK_ERROR; 
+               break;
+            }
+            state = 100;
             break;
        case PRE_FLIGHT_CHECK_ERROR:
             while(1){
