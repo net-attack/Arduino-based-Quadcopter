@@ -194,9 +194,10 @@ void loop(){
       else esc_4 = 1000;                                                                //If motor 4 is not requested set the pulse for the ESC to 1000us (off).
 
       esc_pulse_output();                                                               //Send the ESC control pulses.
-
+      //Serial.println(eeprom_data[31]);
       //For balancing the propellors it's possible to use the accelerometer to measure the vibrations.
-      if(eeprom_data[31] == 1){                                                         //The MPU-6050 is installed
+      if(eeprom_data[31] == 0){                                                         //The MPU-6050 is installed
+        
         gyro_signalen(); 
         acc_x = acc_axis[1];                                             //Add the low and high byte to the acc_x variable.
         acc_y = acc_axis[2];                                             //Add the low and high byte to the acc_y variable.
@@ -243,9 +244,9 @@ void loop(){
         gyro_axis_cal[2] += gyro_axis[2];                                               //Ad pitch value to gyro_pitch_cal.
         gyro_axis_cal[3] += gyro_axis[3];                                               //Ad yaw value to gyro_yaw_cal.
         //We don't want the esc's to be beeping annoyingly. So let's give them a 1000us puls while calibrating the gyro.
-        PORTD |= B11110000;                                                             //Set digital poort 4, 5, 6 and 7 high.
+        PORTD |= B10011100;                                                             //Set digital poort 4, 5, 6 and 7 high.
         delayMicroseconds(1000);                                                        //Wait 1000us.
-        PORTD &= B00001111;                                                             //Set digital poort 4, 5, 6 and 7 low.
+        PORTD &= B01100011;                                                             //Set digital poort 4, 5, 6 and 7 low.
         delay(3);                                                                       //Wait 3 milliseconds before the next loop.
       }
       Serial.println(".");
@@ -256,9 +257,9 @@ void loop(){
     }
     else{
       ///We don't want the esc's to be beeping annoyingly. So let's give them a 1000us puls while calibrating the gyro.
-      PORTD |= B11110000;                                                               //Set digital poort 4, 5, 6 and 7 high.
+      PORTD |= B10011100;                                                               //Set digital poort 4, 5, 6 and 7 high.
       delayMicroseconds(1000);                                                          //Wait 1000us.
-      PORTD &= B00001111;                                                               //Set digital poort 4, 5, 6 and 7 low.
+      PORTD &= B01100011;                                                               //Set digital poort 4, 5, 6 and 7 low.
 
       //Let's get the current gyro data.
       gyro_signalen();
@@ -364,9 +365,7 @@ void wait_for_receiver(){
     if(receiver_input[2] < 2100 && receiver_input[2] > 900)zero |= 0b00000010;  //Set bit 1 if the receiver pulse 2 is within the 900 - 2100 range
     if(receiver_input[3] < 2100 && receiver_input[3] > 900)zero |= 0b00000100;  //Set bit 2 if the receiver pulse 3 is within the 900 - 2100 range
     if(receiver_input[4] < 2100 && receiver_input[4] > 900)zero |= 0b00001000;  //Set bit 3 if the receiver pulse 4 is within the 900 - 2100 range
-    while(1){
-      Serial.println(String(receiver_input[1]) + " " +  String(receiver_input[2]) + " " + String(receiver_input[3]) + " " + String(receiver_input[4]));
-    }
+    
     delay(500);                                                                 //Wait 500 milliseconds
   }
 }
@@ -434,17 +433,31 @@ void print_signals(){
 void esc_pulse_output(){
   zero_timer = micros();
   PORTD |= B10011100;                                            //Set port 4, 5, 6 and 7 high at once
+
+  
   timer_channel_1 = esc_1 + zero_timer;                          //Calculate the time when digital port 4 is set low.
   timer_channel_2 = esc_2 + zero_timer;                          //Calculate the time when digital port 5 is set low.
   timer_channel_3 = esc_3 + zero_timer;                          //Calculate the time when digital port 6 is set low.
   timer_channel_4 = esc_4 + zero_timer;                          //Calculate the time when digital port 7 is set low.
-
-  while(PORTD >= 16){                                            //Execute the loop until digital port 4 to 7 is low.
+  int iter = 0;
+  while(iter < 15){                                            //Execute the loop until digital port 4 to 7 is low.
     esc_loop_timer = micros();                                   //Check the current time.
-    if(timer_channel_1 <= esc_loop_timer)PORTD &= B11101111;     //When the delay time is expired, digital port 4 is set low.
-    if(timer_channel_2 <= esc_loop_timer)PORTD &= B11110111;     //When the delay time is expired, digital port 5 is set low.
-    if(timer_channel_3 <= esc_loop_timer)PORTD &= B11101111;     //When the delay time is expired, digital port 6 is set low.
-    if(timer_channel_4 <= esc_loop_timer)PORTD &= B01111111;     //When the delay time is expired, digital port 7 is set low.
+    if(timer_channel_1 <= esc_loop_timer){
+      PORTD &= B11101111;     //When the delay time is expired, digital port 4 is set low.
+      iter |= B00000001;
+    }
+    if(timer_channel_2 <= esc_loop_timer){
+      PORTD &= B11111011;     //When the delay time is expired, digital port 5 is set low.
+       iter |= B00000010;
+    }
+    if(timer_channel_3 <= esc_loop_timer){
+      PORTD &= B11110111;     //When the delay time is expired, digital port 6 is set low.
+       iter |= B00000100;
+    }
+    if(timer_channel_4 <= esc_loop_timer){
+      PORTD &= B01111111;     //When the delay time is expired, digital port 7 is set low.
+      iter |= B00001000;
+    }
   }
 }
 
