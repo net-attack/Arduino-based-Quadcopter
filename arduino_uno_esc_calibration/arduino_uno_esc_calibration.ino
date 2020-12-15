@@ -57,9 +57,10 @@ double gyro_axis_cal[4];
 //Setup routine
 void setup(){
   Serial.begin(57600);                                                                  //Start the serial port.
- 
+  delay(1000);
+  Serial.println("Start Up ...");
   //Arduino Uno pins default to inputs, so they don't need to be explicitly declared as inputs.
-  DDRD |= B11110000;                                                                    //Configure digital poort 4, 5, 6 and 7 as output.
+  DDRD |= B10011100;                                                                    //Configure digital poort 4, 5, 6 and 7 as output.
   DDRB |= B00100000;                                                                    //Configure digital poort 13 as output.
 
   PCICR |= (1 << PCIE0);                                                                // set PCIE0 to enable PCMSK0 scan.
@@ -68,20 +69,25 @@ void setup(){
   PCMSK0 |= (1 << PCINT3);                                                              // set PCINT2 (digital input 10)to trigger an interrupt on state change.
   PCMSK0 |= (1 << PCINT4);                                                              // set PCINT3 (digital input 11)to trigger an interrupt on state change.
 
+  Serial.println("Read EEPROM ...");
   for(data = 0; data <= 35; data++)eeprom_data[data] = EEPROM.read(data);               //Read EEPROM for faster data access
 
+  Serial.println("Start Gyro ...");
   set_gyro_registers();                                                                 //Set the specific gyro registers.
 
+  Serial.println("Check Setup ...");
   //Check the EEPROM signature to make sure that the setup program is executed.
   while(eeprom_data[33] != 'J' || eeprom_data[34] != 'M' || eeprom_data[35] != 'B'){
     delay(500);                                                                         //Wait for 500ms.
-    digitalWrite(LED_BUILTIN , !digitalRead(LED_BUILTIN ));                                                 //Change the led status to indicate error.
+    digitalWrite(12 , !digitalRead(12 ));                                                 //Change the led status to indicate error.
   }
+  Serial.println("Check Receiver ...");
   wait_for_receiver();                                                                  //Wait until the receiver is active.
   zero_timer = micros();                                                                //Set the zero_timer for the first loop.
 
   while(Serial.available())data = Serial.read();                                        //Empty the serial buffer.
   data = 0;                                                                             //Set the data variable back to zero.
+  Serial.println(".... Finished!");
 }
 
 //Main program loop
@@ -191,14 +197,10 @@ void loop(){
 
       //For balancing the propellors it's possible to use the accelerometer to measure the vibrations.
       if(eeprom_data[31] == 1){                                                         //The MPU-6050 is installed
-        Wire.beginTransmission(gyro_address);                                           //Start communication with the gyro.
-        Wire.write(0x3B);                                                               //Start reading @ register 43h and auto increment with every read.
-        Wire.endTransmission();                                                         //End the transmission.
-        Wire.requestFrom(gyro_address,6);                                               //Request 6 bytes from the gyro.
-        while(Wire.available() < 6);                                                    //Wait until the 6 bytes are received.
-        acc_x = Wire.read()<<8|Wire.read();                                             //Add the low and high byte to the acc_x variable.
-        acc_y = Wire.read()<<8|Wire.read();                                             //Add the low and high byte to the acc_y variable.
-        acc_z = Wire.read()<<8|Wire.read();                                             //Add the low and high byte to the acc_z variable.
+        gyro_signalen(); 
+        acc_x = acc_axis[1];                                             //Add the low and high byte to the acc_x variable.
+        acc_y = acc_axis[2];                                             //Add the low and high byte to the acc_y variable.
+        acc_z = acc_axis[3];                                             //Add the low and high byte to the acc_z variable.
 
         acc_total_vector[0] = sqrt((acc_x*acc_x)+(acc_y*acc_y)+(acc_z*acc_z));          //Calculate the total accelerometer vector.
 
@@ -233,7 +235,7 @@ void loop(){
       //Let's take multiple gyro data samples so we can determine the average gyro offset (calibration).
       for (cal_int = 0; cal_int < 2000 ; cal_int ++){                                   //Take 2000 readings for calibration.
         if(cal_int % 125 == 0){
-          digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));   //Change the led status to indicate calibration.
+          digitalWrite(12, !digitalRead(12));   //Change the led status to indicate calibration.
           Serial.print(".");
         }
         gyro_signalen();                                                                //Read the gyro output.
@@ -262,13 +264,15 @@ void loop(){
       gyro_signalen();
 
       //Gyro angle calculations
+      const float fv = 0.2291832;
+      const float fa = 0.004;
       //0.0000611 = 1 / (250Hz / 65.5)
-      angle_pitch += gyro_pitch * 0.0000611;                                           //Calculate the traveled pitch angle and add this to the angle_pitch variable.
-      angle_roll += gyro_roll * 0.0000611;                                             //Calculate the traveled roll angle and add this to the angle_roll variable.
+      angle_pitch += gyro_pitch * fv;                                           //Calculate the traveled pitch angle and add this to the angle_pitch variable.
+      angle_roll += gyro_roll * fv;                                             //Calculate the traveled roll angle and add this to the angle_roll variable.
 
       //0.000001066 = 0.0000611 * (3.142(PI) / 180degr) The Arduino sin function is in radians
-      angle_pitch -= angle_roll * sin(gyro_yaw * 0.000001066);                         //If the IMU has yawed transfer the roll angle to the pitch angel.
-      angle_roll += angle_pitch * sin(gyro_yaw * 0.000001066);                         //If the IMU has yawed transfer the pitch angle to the roll angel.
+      angle_pitch -= angle_roll * sin(gyro_yaw * fa);                         //If the IMU has yawed transfer the roll angle to the pitch angel.
+      angle_roll += angle_pitch * sin(gyro_yaw * fa);                         //If the IMU has yawed transfer the pitch angle to the roll angel.
 
       //Accelerometer angle calculations
       acc_total_vector[0] = sqrt((acc_x*acc_x)+(acc_y*acc_y)+(acc_z*acc_z));           //Calculate the total accelerometer vector.
@@ -360,6 +364,9 @@ void wait_for_receiver(){
     if(receiver_input[2] < 2100 && receiver_input[2] > 900)zero |= 0b00000010;  //Set bit 1 if the receiver pulse 2 is within the 900 - 2100 range
     if(receiver_input[3] < 2100 && receiver_input[3] > 900)zero |= 0b00000100;  //Set bit 2 if the receiver pulse 3 is within the 900 - 2100 range
     if(receiver_input[4] < 2100 && receiver_input[4] > 900)zero |= 0b00001000;  //Set bit 3 if the receiver pulse 4 is within the 900 - 2100 range
+    while(1){
+      Serial.println(String(receiver_input[1]) + " " +  String(receiver_input[2]) + " " + String(receiver_input[3]) + " " + String(receiver_input[4]));
+    }
     delay(500);                                                                 //Wait 500 milliseconds
   }
 }
@@ -426,7 +433,7 @@ void print_signals(){
 
 void esc_pulse_output(){
   zero_timer = micros();
-  PORTD |= B11110000;                                            //Set port 4, 5, 6 and 7 high at once
+  PORTD |= B10011100;                                            //Set port 4, 5, 6 and 7 high at once
   timer_channel_1 = esc_1 + zero_timer;                          //Calculate the time when digital port 4 is set low.
   timer_channel_2 = esc_2 + zero_timer;                          //Calculate the time when digital port 5 is set low.
   timer_channel_3 = esc_3 + zero_timer;                          //Calculate the time when digital port 6 is set low.
@@ -435,8 +442,8 @@ void esc_pulse_output(){
   while(PORTD >= 16){                                            //Execute the loop until digital port 4 to 7 is low.
     esc_loop_timer = micros();                                   //Check the current time.
     if(timer_channel_1 <= esc_loop_timer)PORTD &= B11101111;     //When the delay time is expired, digital port 4 is set low.
-    if(timer_channel_2 <= esc_loop_timer)PORTD &= B11011111;     //When the delay time is expired, digital port 5 is set low.
-    if(timer_channel_3 <= esc_loop_timer)PORTD &= B10111111;     //When the delay time is expired, digital port 6 is set low.
+    if(timer_channel_2 <= esc_loop_timer)PORTD &= B11110111;     //When the delay time is expired, digital port 5 is set low.
+    if(timer_channel_3 <= esc_loop_timer)PORTD &= B11101111;     //When the delay time is expired, digital port 6 is set low.
     if(timer_channel_4 <= esc_loop_timer)PORTD &= B01111111;     //When the delay time is expired, digital port 7 is set low.
   }
 }
