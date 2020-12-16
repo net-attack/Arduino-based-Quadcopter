@@ -44,11 +44,11 @@ int counter_channel_1, counter_channel_2, counter_channel_3, counter_channel_4;
 int receiver_input[5];
 int loop_counter, gyro_address, vibration_counter;
 int temperature;
-long acc_x, acc_y, acc_z, acc_total_vector[20], acc_av_vector, vibration_total_result;
+float acc_x, acc_y, acc_z, acc_total_vector[20], acc_av_vector, vibration_total_result;
 unsigned long timer_channel_1, timer_channel_2, timer_channel_3, timer_channel_4, esc_timer, esc_loop_timer;
 unsigned long zero_timer, timer_1, timer_2, timer_3, timer_4, current_time;
 
-int acc_axis[4], gyro_axis[4];
+float acc_axis[4], gyro_axis[4];
 double gyro_pitch, gyro_roll, gyro_yaw;
 float angle_roll_acc, angle_pitch_acc, angle_pitch, angle_roll;
 int cal_int;
@@ -202,6 +202,8 @@ void loop(){
         acc_x = acc_axis[1];                                             //Add the low and high byte to the acc_x variable.
         acc_y = acc_axis[2];                                             //Add the low and high byte to the acc_y variable.
         acc_z = acc_axis[3];                                             //Add the low and high byte to the acc_z variable.
+
+        //Serial.println(acc_x);
 
         acc_total_vector[0] = sqrt((acc_x*acc_x)+(acc_y*acc_y)+(acc_z*acc_z));          //Calculate the total accelerometer vector.
 

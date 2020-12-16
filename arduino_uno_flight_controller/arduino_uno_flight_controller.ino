@@ -52,10 +52,10 @@ int throttle, battery_voltage;
 int cal_int, start, gyro_address;
 int receiver_input[5];
 int temperature;
-int acc_axis[4], gyro_axis[4];
+float acc_axis[4], gyro_axis[4];
 float roll_level_adjust, pitch_level_adjust;
 
-long acc_x, acc_y, acc_z, acc_total_vector;
+float acc_x, acc_y, acc_z, acc_total_vector;
 unsigned long timer_channel_1, timer_channel_2, timer_channel_3, timer_channel_4, esc_timer, esc_loop_timer;
 unsigned long timer_1, timer_2, timer_3, timer_4, current_time;
 unsigned long loop_timer;
@@ -174,14 +174,17 @@ void loop(){
   ////////////////////////////////////////////////////////////////////////////////////////////////////
   
   //Gyro angle calculations
+   //Gyro angle calculations
+      const float fv = 0.2291832;
+      const float fa = 0.004;
   //0.0000611 = 1 / (250Hz / 65.5)
   //Todo fix factor
-  angle_pitch += gyro_pitch * 0.0000611;                                    //Calculate the traveled pitch angle and add this to the angle_pitch variable.
-  angle_roll += gyro_roll * 0.0000611;                                      //Calculate the traveled roll angle and add this to the angle_roll variable.
+  angle_pitch += gyro_pitch * fv;                                    //Calculate the traveled pitch angle and add this to the angle_pitch variable.
+  angle_roll += gyro_roll * fv;                                      //Calculate the traveled roll angle and add this to the angle_roll variable.
 
   //0.000001066 = 0.0000611 * (3.142(PI) / 180degr) The Arduino sin function is in radians
-  angle_pitch -= angle_roll * sin(gyro_yaw * 0.000001066);                  //If the IMU has yawed transfer the roll angle to the pitch angel.
-  angle_roll += angle_pitch * sin(gyro_yaw * 0.000001066);                  //If the IMU has yawed transfer the pitch angle to the roll angel.
+  angle_pitch -= angle_roll * sin(gyro_yaw * fa);                  //If the IMU has yawed transfer the roll angle to the pitch angel.
+  angle_roll += angle_pitch * sin(gyro_yaw * fa);                  //If the IMU has yawed transfer the pitch angle to the roll angel.
 
   //Accelerometer angle calculations
   acc_total_vector = sqrt((acc_x*acc_x)+(acc_y*acc_y)+(acc_z*acc_z));       //Calculate the total accelerometer vector.
