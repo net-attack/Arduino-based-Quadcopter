@@ -81,7 +81,7 @@ void setup(){
 
   //Arduino (Atmega) pins default to inputs, so they don't need to be explicitly declared as inputs.
   DDRD |= B11110000;                                                        //Configure digital poort 4, 5, 6 and 7 as output.
-  DDRB |= B00110000;                                                        //Configure digital poort 12 and 13 as output.
+  DDRB |= B00100000;                                                        //Configure digital poort 12 and 13 as output.
 
   //Use the led on the Arduino for startup indication.
   digitalWrite(LED_BUILTIN,HIGH);                                                    //Turn on the warning led.
@@ -91,14 +91,14 @@ void setup(){
 
   //The flight controller needs the MPU-6050 with gyro and accelerometer
   //If setup is completed without MPU-6050 stop the flight controller program  
-  if(eeprom_data[31] == 2 || eeprom_data[31] == 3)delay(10);
+  //if(eeprom_data[31] == 2 || eeprom_data[31] == 3)delay(10);
 
   set_gyro_registers();                                                     //Set the specific gyro registers.
 
   for (cal_int = 0; cal_int < 1250 ; cal_int ++){                           //Wait 5 seconds before continuing.
-    PORTD |= B11110000;                                                     //Set digital poort 4, 5, 6 and 7 high.
+    PORTD |= B10011100;                                                     //Set digital poort 4, 5, 6 and 7 high.
     delayMicroseconds(1000);                                                //Wait 1000us.
-    PORTD &= B00001111;                                                     //Set digital poort 4, 5, 6 and 7 low.
+    PORTD &= B01100011;                                                     //Set digital poort 4, 5, 6 and 7 low.
     delayMicroseconds(3000);                                                //Wait 3000us.
   }
 
@@ -110,9 +110,9 @@ void setup(){
     gyro_axis_cal[2] += gyro_axis[2];                                       //Ad pitch value to gyro_pitch_cal.
     gyro_axis_cal[3] += gyro_axis[3];                                       //Ad yaw value to gyro_yaw_cal.
     //We don't want the esc's to be beeping annoyingly. So let's give them a 1000us puls while calibrating the gyro.
-    PORTD |= B11110000;                                                     //Set digital poort 4, 5, 6 and 7 high.
+    PORTD |= B10011100;                                                     //Set digital poort 4, 5, 6 and 7 high.
     delayMicroseconds(1000);                                                //Wait 1000us.
-    PORTD &= B00001111;                                                     //Set digital poort 4, 5, 6 and 7 low.
+    PORTD &= B01100011;                                                     //Set digital poort 4, 5, 6 and 7 low.
     delay(3);                                                               //Wait 3 milliseconds before the next loop.
   }
   //Now that we have 2000 measures, we need to devide by 2000 to get the average gyro offset.
@@ -132,12 +132,12 @@ void setup(){
     receiver_input_channel_4 = convert_receiver_channel(4);                 //Convert the actual receiver signals for yaw to the standard 1000 - 2000us
     start ++;                                                               //While waiting increment start whith every loop.
     //We don't want the esc's to be beeping annoyingly. So let's give them a 1000us puls while waiting for the receiver inputs.
-    PORTD |= B11110000;                                                     //Set digital poort 4, 5, 6 and 7 high.
+    PORTD |= B10011100;                                                     //Set digital poort 4, 5, 6 and 7 high.
     delayMicroseconds(1000);                                                //Wait 1000us.
-    PORTD &= B00001111;                                                     //Set digital poort 4, 5, 6 and 7 low.
+    PORTD &= B01100011;                                                     //Set digital poort 4, 5, 6 and 7 low.
     delay(3);                                                               //Wait 3 milliseconds before the next loop.
     if(start == 125){                                                       //Every 125 loops (500ms).
-      digitalWrite(12, !digitalRead(12));                                   //Change the led status.
+      digitalWrite(13, !digitalRead(13));                                   //Change the led status.
       start = 0;                                                            //Start again at 0.
     }
   }
@@ -175,6 +175,7 @@ void loop(){
   
   //Gyro angle calculations
   //0.0000611 = 1 / (250Hz / 65.5)
+  //Todo fix factor
   angle_pitch += gyro_pitch * 0.0000611;                                    //Calculate the traveled pitch angle and add this to the angle_pitch variable.
   angle_roll += gyro_roll * 0.0000611;                                      //Calculate the traveled roll angle and add this to the angle_roll variable.
 
@@ -316,14 +317,14 @@ void loop(){
   //the Q&A page: 
   //! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
     
-  if(micros() - loop_timer > 4050)digitalWrite(12, HIGH);                   //Turn on the LED if the loop time exceeds 4050us.
+  if(micros() - loop_timer > 4050)digitalWrite(13, HIGH);                   //Turn on the LED if the loop time exceeds 4050us.
   
   //All the information for controlling the motor's is available.
   //The refresh rate is 250Hz. That means the esc's need there pulse every 4ms.
   while(micros() - loop_timer < 4000);                                      //We wait until 4000us are passed.
   loop_timer = micros();                                                    //Set the timer for the next loop.
 
-  PORTD |= B11110000;                                                       //Set digital outputs 4,5,6 and 7 high.
+  PORTD |= B10011100;                                                       //Set digital outputs 4,5,6 and 7 high.
   timer_channel_1 = esc_1 + loop_timer;                                     //Calculate the time of the faling edge of the esc-1 pulse.
   timer_channel_2 = esc_2 + loop_timer;                                     //Calculate the time of the faling edge of the esc-2 pulse.
   timer_channel_3 = esc_3 + loop_timer;                                     //Calculate the time of the faling edge of the esc-3 pulse.
@@ -332,13 +333,25 @@ void loop(){
   //There is always 1000us of spare time. So let's do something usefull that is very time consuming.
   //Get the current gyro and receiver data and scale it to degrees per second for the pid calculations.
   gyro_signalen();
-
-  while(PORTD >= 16){                                                       //Stay in this loop until output 4,5,6 and 7 are low.
+  int c = 0;
+  while(c < 15){                                                       //Stay in this loop until output 4,5,6 and 7 are low.
     esc_loop_timer = micros();                                              //Read the current time.
-    if(timer_channel_1 <= esc_loop_timer)PORTD &= B11101111;                //Set digital output 4 to low if the time is expired.
-    if(timer_channel_2 <= esc_loop_timer)PORTD &= B11011111;                //Set digital output 5 to low if the time is expired.
-    if(timer_channel_3 <= esc_loop_timer)PORTD &= B10111111;                //Set digital output 6 to low if the time is expired.
-    if(timer_channel_4 <= esc_loop_timer)PORTD &= B01111111;                //Set digital output 7 to low if the time is expired.
+    if(timer_channel_1 <= esc_loop_timer){
+       PORTD &= B11101111;                //Set digital output 4 to low if the time is expired.
+       c |= B00000001; 
+    }
+    if(timer_channel_2 <= esc_loop_timer){
+       PORTD &= B11111011;                //Set digital output 5 to low if the time is expired.
+       c |= B00000010;
+    }
+    if(timer_channel_3 <= esc_loop_timer){
+       PORTD &= B11110111;                //Set digital output 6 to low if the time is expired.
+       c |= B00000100;
+    }
+    if(timer_channel_4 <= esc_loop_timer){
+       PORTD &= B01111111;                //Set digital output 7 to low if the time is expired.
+       c |= B00001000;
+    }
   }
 }
 
