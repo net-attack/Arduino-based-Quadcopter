@@ -48,7 +48,7 @@ float acc_x, acc_y, acc_z, acc_total_vector[20], acc_av_vector, vibration_total_
 unsigned long timer_channel_1, timer_channel_2, timer_channel_3, timer_channel_4, esc_timer, esc_loop_timer;
 unsigned long zero_timer, timer_1, timer_2, timer_3, timer_4, current_time;
 
-float acc_axis[4], gyro_axis[4];
+float acc_axis[4], gyro_axis[4], magn_axis[4];
 double gyro_pitch, gyro_roll, gyro_yaw;
 float angle_roll_acc, angle_pitch_acc, angle_pitch, angle_roll;
 int cal_int;
@@ -228,6 +228,33 @@ void loop(){
       }
     }
   }
+
+ ///////////////////////////////////////////////////////////////////////////////////////////
+  //When user sends a 'a' display the quadcopter angles.
+  ////////////////////////////////////////////////////////////////////////////////////////////
+  if(data == 'g'){
+    gyro_signalen();
+    Serial.print(gyro_axis[1]);
+    Serial.print("\t");
+    Serial.print(gyro_axis[2]);
+    Serial.print("\t");
+    Serial.print(gyro_axis[3]);
+    Serial.print("\t");
+    Serial.print(acc_axis[1]); 
+    Serial.print("\t");
+    Serial.print(acc_axis[2]); 
+    Serial.print("\t");
+    Serial.print(acc_axis[3]);
+    Serial.print("\t");
+    Serial.print(magn_axis[1]);
+    Serial.print("\t");
+    Serial.print(magn_axis[2]);
+    Serial.print("\t");
+    Serial.print(magn_axis[3]);
+    Serial.print("\t");
+    Serial.println(temperature);
+  }
+  
   ///////////////////////////////////////////////////////////////////////////////////////////
   //When user sends a 'a' display the quadcopter angles.
   ////////////////////////////////////////////////////////////////////////////////////////////
@@ -265,7 +292,9 @@ void loop(){
 
       //Let's get the current gyro data.
       gyro_signalen();
-
+      acc_x = acc_axis[1];                                             //Add the low and high byte to the acc_x variable.
+      acc_y = acc_axis[2];                                             //Add the low and high byte to the acc_y variable.
+      acc_z = acc_axis[3];                                             //Add the low and high byte to the acc_z variable.
       //Gyro angle calculations
       const float fv = 0.2291832;
       const float fa = 0.004;
@@ -296,11 +325,11 @@ void loop(){
 
       //We can't print all the data at once. This takes to long and the angular readings will be off.
       if(loop_counter == 0)Serial.print("Pitch: ");
-      if(loop_counter == 1)Serial.print(angle_pitch ,0);
+      if(loop_counter == 1)Serial.print(angle_pitch );
       if(loop_counter == 2)Serial.print(" Roll: ");
-      if(loop_counter == 3)Serial.print(angle_roll ,0);
+      if(loop_counter == 3)Serial.print(angle_roll );
       if(loop_counter == 4)Serial.print(" Yaw: ");
-      if(loop_counter == 5)Serial.println(gyro_yaw / 65.5 ,0);
+      if(loop_counter == 5)Serial.println(gyro_yaw );
 
       loop_counter ++;
       if(loop_counter == 60)loop_counter = 0;      
@@ -492,8 +521,11 @@ void gyro_signalen(){
   gyro_axis[1] = IMU.getGyroX_rads();                   //Read high and low part of the angular data.
   gyro_axis[2] = IMU.getGyroY_rads();                   //Read high and low part of the angular data.
   gyro_axis[3] = IMU.getGyroZ_rads();                   //Read high and low part of the angular data.
-
-
+  
+  magn_axis[1] = IMU.getMagX_uT();
+  magn_axis[2] = IMU.getMagY_uT();
+  magn_axis[3] = IMU.getMagZ_uT();
+  
   if(cal_int == 2000){
     gyro_axis[1] -= gyro_axis_cal[1];                            //Only compensate after the calibration.
     gyro_axis[2] -= gyro_axis_cal[2];                            //Only compensate after the calibration.
