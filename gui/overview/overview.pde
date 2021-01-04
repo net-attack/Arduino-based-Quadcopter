@@ -164,6 +164,7 @@ void drawCompass(){
   
   float roll = atan(acc_y / sqrt(pow(acc_x, 2) + pow(acc_z, 2))) + rollcalibration;
   float pitch = atan(-1 * acc_x / sqrt(pow(acc_y, 2) + pow(acc_z, 2))) + pitchcalibration;
+  
   fill(255);
   stroke(255);
   rect(width/2,0,width/2,height);
@@ -178,16 +179,22 @@ void drawCompass(){
   //line(x - cos(roll)*width/6, y - sin(roll)*width/6, x + cos(roll)*width/6,  y + sin(roll)*width/6);
   
   line(x - cos(roll)*width/6, y - sin(pitch)*width/12 - sin(roll)*width/12, x + cos(roll)*width/6,  y + sin(pitch)*width/12 + sin(roll)*width/12);
-  line(x - cos(roll)*width/6, y + sin(pitch)*width/12 + sin(roll)*width/12, x + cos(roll)*width/6,  y - sin(pitch)*width/12 - sin(roll)*width/12);
+  line(x - cos(roll)*width/6, y + sin(pitch)*width/12 - sin(roll)*width/12, x + cos(roll)*width/6,  y - sin(pitch)*width/12 + sin(roll)*width/12);
+  
+  
   strokeWeight(2);
   circle(x - cos(roll)*width/6, y - sin(pitch)*width/12  - sin(roll)*width/12, width/24);
-  circle(x + cos(roll)*width/6, y - sin(pitch)*width/12 - sin(roll)*width/12, width/24);
+  circle(x + cos(roll)*width/6, y - sin(pitch)*width/12 + sin(roll)*width/12, width/24);
+  
   stroke(255,0,0);
   fill(255,0,0);
-  circle(x - cos(roll)*width/6, y + sin(pitch)*width/12  + sin(roll)*width/12, width/24);
+  circle(x - cos(roll)*width/6, y + sin(pitch)*width/12  - sin(roll)*width/12, width/24);
   stroke(0,255,0);
   fill(0,255,0);
   circle(x + cos(roll)*width/6, y + sin(pitch)*width/12  + sin(roll)*width/12, width/24);
+  
+  
+  
   fill(0);
   strokeWeight(1);
   stroke(255,0,0);
@@ -231,43 +238,89 @@ void serialEvent (Serial myPort) {
     String[] inStrings = split(inString, '\t');
     for( int i = 0; i < inStrings.length; i++){
       String s = inStrings[i];
+      Double v;
       switch(i){
         case 0:
           
           // Gyro X
-          inBytes[i] = float(trim(s));
+          v = (double)float(trim(s));
+          if (v.isNaN()){
+            inBytes[i] = 0;
+          }else{
+            inBytes[i] = v.floatValue();
+          }
           break;
         case 1:
           // Gyro Y
-          inBytes[i] = float(trim(s));
+          v = (double)float(trim(s));
+          if (v.isNaN()){
+            inBytes[i] = 0;
+          }else{
+            inBytes[i] = v.floatValue();
+          }
           break;
         case 2:
           // Gyro Z
-          inBytes[i] = float(trim(s));
+          v = (double)float(trim(s));
+          if (v.isNaN()){
+            inBytes[i] = 0;
+          }else{
+            inBytes[i] = v.floatValue();
+          }
           break;
         case 3:
           // Acc X
-          inBytes[i] = float(trim(s));
+          v = (double)float(trim(s));
+          if (v.isNaN()){
+            inBytes[i] = 0;
+          }else{
+            inBytes[i] = v.floatValue();
+          }
           break;
         case 4:
           // Acc Y
-          inBytes[i] = float(trim(s));
+          v = (double)float(trim(s));
+          if (v.isNaN()){
+            inBytes[i] = 0;
+          }else{
+            inBytes[i] = v.floatValue();
+          }
           break;
         case 5:
           // Acc Z
-          inBytes[i] = float(trim(s));
+          v = (double)float(trim(s));
+          if (v.isNaN()){
+            inBytes[i] = 0;
+          }else{
+            inBytes[i] = v.floatValue();
+          }
           break;
         case 6:
           // Magnet X
-          inBytes[i] = float(trim(s));
+          v = (double)float(trim(s));
+          if (v.isNaN()){
+            inBytes[i] = 0;
+          }else{
+            inBytes[i] = v.floatValue();
+          }
           break;
         case 7:
           // Magnet Y
-          inBytes[i] = float(trim(s));
+          v = (double)float(trim(s));
+          if (v.isNaN()){
+            inBytes[i] = 0;
+          }else{
+            inBytes[i] = v.floatValue();
+          }
           break;
         case 8:
           // Magnet Z
-          inBytes[i] = float(trim(s));
+          v = (double)float(trim(s));
+          if (v.isNaN()){
+            inBytes[i] = 0;
+          }else{
+            inBytes[i] = v.floatValue();
+          }
           break;
         case 9:
           // Temperature
