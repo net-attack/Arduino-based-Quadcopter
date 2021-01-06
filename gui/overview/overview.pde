@@ -8,7 +8,7 @@ float inBytesCalibration[] = new float[10];
 void setup(){
   fullScreen();
   background(255);
-  println(Serial.list());
+  //println(Serial.list());
   while(Serial.list().length<2){
   }
   drone = new Serial(this, Serial.list()[0], 57600);
@@ -164,7 +164,8 @@ void draw(){
   
 }
 
-
+float minMag = 0;
+float maxMag = 0;
 float heading = 0;
 void drawCompass(){
   float acc_x = inBytes[3];
@@ -213,7 +214,7 @@ void drawCompass(){
   
   
   fill(0);
-  strokeWeight(2);
+  strokeWeight(1);
   stroke(255,0,0);
   
   //alpha = alpha /360 * 2 * 3.1415;
@@ -225,10 +226,55 @@ void drawCompass(){
   line(x1, y1, x2, y2); 
   line(x2, y2, x2 - width/36 * sin(heading + 3.1415/4 + 3.1415/2), y2 - width/36*cos(heading + 3.1415/4+ 3.1415/2)); 
   line(x2, y2, x2 - width/36 * cos(heading + 3.1415/4+ 3.1415/2), y2 + width/36*sin(heading + 3.1415/4+ 3.1415/2)); 
+  
+  
+    if(inBytes[6] < minMag) minMag = inBytes[6];
+  if(inBytes[7] < minMag) minMag = inBytes[7];
+  if(inBytes[8] < minMag) minMag = inBytes[8];
+  if(inBytes[6] > maxMag) maxMag = inBytes[6];
+  if(inBytes[7] > maxMag) maxMag = inBytes[7];
+  if(inBytes[8] > maxMag) maxMag = inBytes[8];
+  
 
+  x = floor(map(inBytes[6],minMag, maxMag, -height/8, height/8));
+  y = floor(map(inBytes[7],minMag, maxMag, -height/8, height/8));
+  int z = floor(map(inBytes[8],minMag, maxMag, -height/8, height/8));
+  arrow(x,y, z);
+  
 }
 
 
+float x2 = 0;
+float y2 = 0;
+
+void arrow(float x, float y, float z) {
+  x2 = lerp(x2,cos(0.5235987756) * (x + y/2),0.5);
+  y2 = lerp(y2,sin(0.5235987756) * (x - y/2) - z, 0.5);  
+  float x1 = 0;
+  float y1 = 0;
+  translate(width*3/4, height/8);
+  int l = width/16;
+  stroke(200);
+  line(0,0,cos(0.5235987756) * l,sin(0.5235987756) * l); 
+  text("X",cos(0.5235987756) * l,sin(0.5235987756) * l);
+  line(0,0,cos(0.5235987756) * l/2,-sin(0.5235987756) * l/2); 
+  text("Y",cos(0.5235987756) * l/2,-sin(0.5235987756) * l/2);
+  line(0,0,0, -l); 
+  text("Z",0,-l);
+  
+  x2 = x1 + x2;
+  y2 = y1 + y2;
+  //println(x,y,z);
+  stroke(255, 0, 0);
+  line(x1, y1, x2, y2);
+  pushMatrix();
+  translate(x2, y2);
+  float a = atan2(x1-x2, y2-y1);
+  rotate(a);
+  line(0, 0, -10, -10);
+  line(0, 0, 10, -10);
+  popMatrix();
+} 
 
 void serialEvent (Serial myPort) {
   // get the ASCII string:
