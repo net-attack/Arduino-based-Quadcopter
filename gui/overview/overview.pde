@@ -8,10 +8,10 @@ float inBytesCalibration[] = new float[10];
 void setup(){
   fullScreen();
   background(255);
-  //println(Serial.list());
+  println(Serial.list());
   while(Serial.list().length<2){
   }
-  drone = new Serial(this, Serial.list()[1], 57600);
+  drone = new Serial(this, Serial.list()[0], 57600);
   
   // don't generate a serialEvent() unless you get a newline character:
   drone.bufferUntil('\n');
@@ -35,6 +35,7 @@ boolean calibrated = false;
 
 float rollcalibration = 0;
 float pitchcalibration = 0;
+float headingCalibration = 0;
 void draw(){
   boolean on = false;
   for(int i=0; i < numberPlots; i++){
@@ -108,20 +109,29 @@ void draw(){
   
   if(on & !calibrated){
     println("Start Calibration");
-    int count = 20;
+    int count = 200;
     int i= 0;
     while(i < count){
       if(newdata){
         float acc_x = inBytes[3];
         float acc_y = inBytes[4];
         float acc_z = inBytes[5];
+        
+        float mag_x = inBytes[6];
+        float mag_y = inBytes[7];
+        float mag_z = inBytes[8];
+        float alpha = atan2(mag_y, mag_x);
+  
+        
         for(int j = 0; j < 10; j++){
           inBytesCalibration[j] += inBytes[j]; 
         }
         float roll = atan(acc_y / sqrt(pow(acc_x, 2) + pow(acc_z, 2)));
         float pitch = atan(-1 * acc_x / sqrt(pow(acc_y, 2) + pow(acc_z, 2)));
         pitchcalibration += pitch;
-        rollcalibration += pitch;
+        rollcalibration += roll;
+        headingCalibration += alpha;
+        
         newdata = false;
         i += 1;
       }
@@ -132,6 +142,7 @@ void draw(){
     }
     pitchcalibration /= count;
     rollcalibration /= count;
+    headingCalibration /= count;
     println("End Calibration");
     calibrated = true;
   }
@@ -153,23 +164,29 @@ void draw(){
   
 }
 
+
+float heading = 0;
 void drawCompass(){
   float acc_x = inBytes[3];
   float acc_y = inBytes[4];
   float acc_z = inBytes[5];
   //println(acc_x + " " + acc_y + " " + acc_z);
+  
+  
+  float roll = atan(acc_y / sqrt(pow(acc_x, 2) + pow(acc_z, 2))) - rollcalibration;
+  float pitch = atan(-1 * acc_x / sqrt(pow(acc_y, 2) + pow(acc_z, 2))) - pitchcalibration;
+  
   float mag_x = inBytes[6];
   float mag_y = inBytes[7];
   float mag_z = inBytes[8];
-  
-  float roll = atan(acc_y / sqrt(pow(acc_x, 2) + pow(acc_z, 2))) + rollcalibration;
-  float pitch = atan(-1 * acc_x / sqrt(pow(acc_y, 2) + pow(acc_z, 2))) + pitchcalibration;
-  
+  float alpha = -atan2(mag_y, mag_x) + headingCalibration;
+  heading = lerp(heading, alpha, 0.5);
   fill(255);
   stroke(255);
   rect(width/2,0,width/2,height);
   fill(0);
   stroke(0);
+  text("HEADING: " + heading/2/3.1415*360, width*3/4, height/6);
   circle(width/2 + width/4, height/2, width/3);
   float x = width/2 + width/4;
   float y = height/2 + width/6 + 100;
@@ -196,18 +213,18 @@ void drawCompass(){
   
   
   fill(0);
-  strokeWeight(1);
+  strokeWeight(2);
   stroke(255,0,0);
-  float alpha = atan2(mag_y, mag_x);
+  
   //alpha = alpha /360 * 2 * 3.1415;
   float x1 = width/2 + width/4;
-  float x2 = width/2 + width/4 + width/6 * cos(alpha);
+  float x2 = width/2 + width/4 + width/6 * cos(heading+ 3.1415/2);
   float y1 = height/2;
-  float y2 =  height/2 - width/6 * sin(alpha);
+  float y2 =  height/2 - width/6 * sin(heading+ 3.1415/2);
   
   line(x1, y1, x2, y2); 
-  line(x2, y2, x2 - width/36 * sin(alpha + 3.1415/4), y2 - width/36*cos(alpha + 3.1415/4)); 
-  line(x2, y2, x2 - width/36 * cos(alpha + 3.1415/4), y2 + width/36*sin(alpha + 3.1415/4)); 
+  line(x2, y2, x2 - width/36 * sin(heading + 3.1415/4 + 3.1415/2), y2 - width/36*cos(heading + 3.1415/4+ 3.1415/2)); 
+  line(x2, y2, x2 - width/36 * cos(heading + 3.1415/4+ 3.1415/2), y2 + width/36*sin(heading + 3.1415/4+ 3.1415/2)); 
 
 }
 
