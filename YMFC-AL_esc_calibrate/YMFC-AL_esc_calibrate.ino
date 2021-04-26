@@ -30,8 +30,8 @@
 //4 = check rotation / vibrations for motor 4 (left front CW).
 //5 = check vibrations for all motors together.
 
-#include "MPU9250.h"
-MPU9250 IMU(Wire,0x68);
+
+#include <Wire.h>                                    //Include the Wire.h library so we can communicate with the gyro.
 #include <EEPROM.h>                                  //Include the EEPROM.h library so we can store information onto the EEPROM
 
 //Declaring global variables
@@ -44,11 +44,11 @@ int counter_channel_1, counter_channel_2, counter_channel_3, counter_channel_4;
 int receiver_input[5];
 int loop_counter, gyro_address, vibration_counter;
 int temperature;
-float acc_x, acc_y, acc_z, acc_total_vector[20], acc_av_vector, vibration_total_result;
+long acc_x, acc_y, acc_z, acc_total_vector[20], acc_av_vector, vibration_total_result;
 unsigned long timer_channel_1, timer_channel_2, timer_channel_3, timer_channel_4, esc_timer, esc_loop_timer;
 unsigned long zero_timer, timer_1, timer_2, timer_3, timer_4, current_time;
 
-float acc_axis[4], gyro_axis[4], magn_axis[4];
+int acc_axis[4], gyro_axis[4];
 double gyro_pitch, gyro_roll, gyro_yaw;
 float angle_roll_acc, angle_pitch_acc, angle_pitch, angle_roll;
 int cal_int;
@@ -57,37 +57,35 @@ double gyro_axis_cal[4];
 //Setup routine
 void setup(){
   Serial.begin(57600);                                                                  //Start the serial port.
-  delay(1000);
-  Serial.println("Start Up ...");
+  Wire.begin();                                                                         //Start the wire library as master
+  TWBR = 12;                                                                            //Set the I2C clock speed to 400kHz.
+
   //Arduino Uno pins default to inputs, so they don't need to be explicitly declared as inputs.
-  DDRD |= B10011100;                                                                    //Configure digital port 4, 5, 6 and 7 as output.
-  DDRB |= B00100000;                                                                    //Configure digital port 13 as output.
+  DDRD |= B11110000;                                                                    //Configure digital poort 4, 5, 6 and 7 as output.
+  DDRB |= B00010000;                                                                    //Configure digital poort 12 as output.
 
   PCICR |= (1 << PCIE0);                                                                // set PCIE0 to enable PCMSK0 scan.
-  PCMSK0 |= (1 << PCINT1);                                                              // set PCINT0 (digital input 8) to trigger an interrupt on state change.
-  PCMSK0 |= (1 << PCINT2);                                                              // set PCINT1 (digital input 9)to trigger an interrupt on state change.
-  PCMSK0 |= (1 << PCINT3);                                                              // set PCINT2 (digital input 10)to trigger an interrupt on state change.
-  PCMSK0 |= (1 << PCINT4);                                                              // set PCINT3 (digital input 11)to trigger an interrupt on state change.
+  PCMSK0 |= (1 << PCINT0);                                                              // set PCINT0 (digital input 8) to trigger an interrupt on state change.
+  PCMSK0 |= (1 << PCINT1);                                                              // set PCINT1 (digital input 9)to trigger an interrupt on state change.
+  PCMSK0 |= (1 << PCINT2);                                                              // set PCINT2 (digital input 10)to trigger an interrupt on state change.
+  PCMSK0 |= (1 << PCINT3);                                                              // set PCINT3 (digital input 11)to trigger an interrupt on state change.
 
-  Serial.println("Read EEPROM ...");
   for(data = 0; data <= 35; data++)eeprom_data[data] = EEPROM.read(data);               //Read EEPROM for faster data access
 
-  Serial.println("Start Gyro ...");
+  gyro_address = eeprom_data[32];                                                       //Store the gyro address in the variable.
+
   set_gyro_registers();                                                                 //Set the specific gyro registers.
 
-  Serial.println("Check Setup ...");
   //Check the EEPROM signature to make sure that the setup program is executed.
   while(eeprom_data[33] != 'J' || eeprom_data[34] != 'M' || eeprom_data[35] != 'B'){
     delay(500);                                                                         //Wait for 500ms.
-    digitalWrite(12 , !digitalRead(12 ));                                                 //Change the led status to indicate error.
+    digitalWrite(12, !digitalRead(12));                                                 //Change the led status to indicate error.
   }
-  Serial.println("Check Receiver ...");
   wait_for_receiver();                                                                  //Wait until the receiver is active.
   zero_timer = micros();                                                                //Set the zero_timer for the first loop.
 
   while(Serial.available())data = Serial.read();                                        //Empty the serial buffer.
   data = 0;                                                                             //Set the data variable back to zero.
-  Serial.println(".... Finished!");
 }
 
 //Main program loop
@@ -135,16 +133,7 @@ void loop(){
   //Run the ESC calibration program to start with.
   ////////////////////////////////////////////////////////////////////////////////////////////
   if(data == 0 && new_function_request == false){                                       //Only start the calibration mode at first start. 
-    //1000 left roll 2000 right roll
-    receiver_input_channel_1 = convert_receiver_channel(1);                             //Convert the actual receiver signals for throttle to the standard 1000 - 2000us.
-    //1000 pitch down 2000 pitch up
-    receiver_input_channel_2 = convert_receiver_channel(2);                             //Convert the actual receiver signals for throttle to the standard 1000 - 2000us.
-    // 1000 throttle off 2000 throttle up
     receiver_input_channel_3 = convert_receiver_channel(3);                             //Convert the actual receiver signals for throttle to the standard 1000 - 2000us.
-    // left yaw and right yaw
-    receiver_input_channel_4 = convert_receiver_channel(4);                             //Convert the actual receiver signals for throttle to the standard 1000 - 2000us.
-    
-    
     esc_1 = receiver_input_channel_3;                                                   //Set the pulse for motor 1 equal to the throttle channel.
     esc_2 = receiver_input_channel_3;                                                   //Set the pulse for motor 2 equal to the throttle channel.
     esc_3 = receiver_input_channel_3;                                                   //Set the pulse for motor 3 equal to the throttle channel.
@@ -203,16 +192,17 @@ void loop(){
       else esc_4 = 1000;                                                                //If motor 4 is not requested set the pulse for the ESC to 1000us (off).
 
       esc_pulse_output();                                                               //Send the ESC control pulses.
-      //Serial.println(eeprom_data[31]);
-      //For balancing the propellors it's possible to use the accelerometer to measure the vibrations.
-      if(eeprom_data[31] == 0){                                                         //The MPU-6050 is installed
-        
-        gyro_signalen(); 
-        acc_x = acc_axis[1];                                             //Add the low and high byte to the acc_x variable.
-        acc_y = acc_axis[2];                                             //Add the low and high byte to the acc_y variable.
-        acc_z = acc_axis[3];                                             //Add the low and high byte to the acc_z variable.
 
-        //Serial.println(acc_x);
+      //For balancing the propellors it's possible to use the accelerometer to measure the vibrations.
+      if(eeprom_data[31] == 1){                                                         //The MPU-6050 is installed
+        Wire.beginTransmission(gyro_address);                                           //Start communication with the gyro.
+        Wire.write(0x3B);                                                               //Start reading @ register 43h and auto increment with every read.
+        Wire.endTransmission();                                                         //End the transmission.
+        Wire.requestFrom(gyro_address,6);                                               //Request 6 bytes from the gyro.
+        while(Wire.available() < 6);                                                    //Wait until the 6 bytes are received.
+        acc_x = Wire.read()<<8|Wire.read();                                             //Add the low and high byte to the acc_x variable.
+        acc_y = Wire.read()<<8|Wire.read();                                             //Add the low and high byte to the acc_y variable.
+        acc_z = Wire.read()<<8|Wire.read();                                             //Add the low and high byte to the acc_z variable.
 
         acc_total_vector[0] = sqrt((acc_x*acc_x)+(acc_y*acc_y)+(acc_z*acc_z));          //Calculate the total accelerometer vector.
 
@@ -231,64 +221,12 @@ void loop(){
         }
         else{
           vibration_counter = 0;                                                        //If the vibration_counter is equal or larger than 20 do this.
-          Serial.println(vibration_total_result);                                    //Print the total accelerometer vector divided by 50 on the serial monitor.
+          Serial.println(vibration_total_result/50);                                    //Print the total accelerometer vector divided by 50 on the serial monitor.
           vibration_total_result = 0;                                                   //Reset the vibration_total_result variable.
         }
       }
     }
   }
-
- ///////////////////////////////////////////////////////////////////////////////////////////
-  //When user sends a 'a' display the quadcopter angles.
-  ////////////////////////////////////////////////////////////////////////////////////////////
-  if(data == 'g'){
-
-    receiver_input_channel_1 = convert_receiver_channel(1);                           //Convert the actual receiver signals for pitch to the standard 1000 - 2000us.
-    receiver_input_channel_2 = convert_receiver_channel(2);                           //Convert the actual receiver signals for roll to the standard 1000 - 2000us.
-    receiver_input_channel_3 = convert_receiver_channel(3);                           //Convert the actual receiver signals for throttle to the standard 1000 - 2000us.
-    receiver_input_channel_4 = convert_receiver_channel(4);                           //Convert the actual receiver signals for yaw to the standard 1000 - 2000us.
-
-    gyro_signalen();
-    Serial.print(micros());
-    Serial.print('\t');
-    Serial.print(gyro_axis[1]);
-    Serial.print("\t");
-    Serial.print(gyro_axis[2]);
-    Serial.print("\t");
-    Serial.print(gyro_axis[3]);
-    Serial.print("\t");
-    Serial.print(acc_axis[1]); 
-    Serial.print("\t");
-    Serial.print(acc_axis[2]); 
-    Serial.print("\t");
-    Serial.print(acc_axis[3]);
-    Serial.print("\t");
-    Serial.print(magn_axis[1]);
-    Serial.print("\t");
-    Serial.print(magn_axis[2]);
-    Serial.print("\t");
-    Serial.print(magn_axis[3]);
-    Serial.print("\t");
-    Serial.print(receiver_input_channel_1);
-    Serial.print("\t");
-    Serial.print(receiver_input_channel_2);
-    Serial.print("\t");
-    Serial.print(receiver_input_channel_3);
-    Serial.print("\t");
-    Serial.print(receiver_input_channel_4);
-    Serial.print("\t");
-    Serial.print(esc_1);
-    Serial.print("\t");
-    Serial.print(esc_2);
-    Serial.print("\t");
-    Serial.print(esc_3);
-    Serial.print("\t");
-    Serial.print(esc_4);
-    Serial.print("\t");
-    Serial.println(temperature);
-    delayMicroseconds(10);
-  }
-  
   ///////////////////////////////////////////////////////////////////////////////////////////
   //When user sends a 'a' display the quadcopter angles.
   ////////////////////////////////////////////////////////////////////////////////////////////
@@ -307,9 +245,9 @@ void loop(){
         gyro_axis_cal[2] += gyro_axis[2];                                               //Ad pitch value to gyro_pitch_cal.
         gyro_axis_cal[3] += gyro_axis[3];                                               //Ad yaw value to gyro_yaw_cal.
         //We don't want the esc's to be beeping annoyingly. So let's give them a 1000us puls while calibrating the gyro.
-        PORTD |= B10011100;                                                             //Set digital poort 4, 5, 6 and 7 high.
+        PORTD |= B11110000;                                                             //Set digital poort 4, 5, 6 and 7 high.
         delayMicroseconds(1000);                                                        //Wait 1000us.
-        PORTD &= B01100011;                                                             //Set digital poort 4, 5, 6 and 7 low.
+        PORTD &= B00001111;                                                             //Set digital poort 4, 5, 6 and 7 low.
         delay(3);                                                                       //Wait 3 milliseconds before the next loop.
       }
       Serial.println(".");
@@ -320,25 +258,21 @@ void loop(){
     }
     else{
       ///We don't want the esc's to be beeping annoyingly. So let's give them a 1000us puls while calibrating the gyro.
-      PORTD |= B10011100;                                                               //Set digital poort 4, 5, 6 and 7 high.
+      PORTD |= B11110000;                                                               //Set digital poort 4, 5, 6 and 7 high.
       delayMicroseconds(1000);                                                          //Wait 1000us.
-      PORTD &= B01100011;                                                               //Set digital poort 4, 5, 6 and 7 low.
+      PORTD &= B00001111;                                                               //Set digital poort 4, 5, 6 and 7 low.
 
       //Let's get the current gyro data.
       gyro_signalen();
-      acc_x = acc_axis[1];                                             //Add the low and high byte to the acc_x variable.
-      acc_y = acc_axis[2];                                             //Add the low and high byte to the acc_y variable.
-      acc_z = acc_axis[3];                                             //Add the low and high byte to the acc_z variable.
+
       //Gyro angle calculations
-      const float fv = 0.2291832;
-      const float fa = 0.004;
       //0.0000611 = 1 / (250Hz / 65.5)
-      angle_pitch += gyro_pitch * fv;                                           //Calculate the traveled pitch angle and add this to the angle_pitch variable.
-      angle_roll += gyro_roll * fv;                                             //Calculate the traveled roll angle and add this to the angle_roll variable.
+      angle_pitch += gyro_pitch * 0.0000611;                                           //Calculate the traveled pitch angle and add this to the angle_pitch variable.
+      angle_roll += gyro_roll * 0.0000611;                                             //Calculate the traveled roll angle and add this to the angle_roll variable.
 
       //0.000001066 = 0.0000611 * (3.142(PI) / 180degr) The Arduino sin function is in radians
-      angle_pitch -= angle_roll * sin(gyro_yaw * fa);                         //If the IMU has yawed transfer the roll angle to the pitch angel.
-      angle_roll += angle_pitch * sin(gyro_yaw * fa);                         //If the IMU has yawed transfer the pitch angle to the roll angel.
+      angle_pitch -= angle_roll * sin(gyro_yaw * 0.000001066);                         //If the IMU has yawed transfer the roll angle to the pitch angel.
+      angle_roll += angle_pitch * sin(gyro_yaw * 0.000001066);                         //If the IMU has yawed transfer the pitch angle to the roll angel.
 
       //Accelerometer angle calculations
       acc_total_vector[0] = sqrt((acc_x*acc_x)+(acc_y*acc_y)+(acc_z*acc_z));           //Calculate the total accelerometer vector.
@@ -359,11 +293,11 @@ void loop(){
 
       //We can't print all the data at once. This takes to long and the angular readings will be off.
       if(loop_counter == 0)Serial.print("Pitch: ");
-      if(loop_counter == 1)Serial.print(angle_pitch );
+      if(loop_counter == 1)Serial.print(angle_pitch ,0);
       if(loop_counter == 2)Serial.print(" Roll: ");
-      if(loop_counter == 3)Serial.print(angle_roll );
+      if(loop_counter == 3)Serial.print(angle_roll ,0);
       if(loop_counter == 4)Serial.print(" Yaw: ");
-      if(loop_counter == 5)Serial.println(gyro_yaw );
+      if(loop_counter == 5)Serial.println(gyro_yaw / 65.5 ,0);
 
       loop_counter ++;
       if(loop_counter == 60)loop_counter = 0;      
@@ -377,7 +311,7 @@ void loop(){
 ISR(PCINT0_vect){
   current_time = micros();
   //Channel 1=========================================
-  if(PINB & B00000010){                                        //Is input 8 high?
+  if(PINB & B00000001){                                        //Is input 8 high?
     if(last_channel_1 == 0){                                   //Input 8 changed from 0 to 1.
       last_channel_1 = 1;                                      //Remember current input state.
       timer_1 = current_time;                                  //Set timer_1 to current_time.
@@ -388,7 +322,7 @@ ISR(PCINT0_vect){
     receiver_input[1] = current_time - timer_1;                 //Channel 1 is current_time - timer_1.
   }
   //Channel 2=========================================
-  if(PINB & B00000100 ){                                       //Is input 9 high?
+  if(PINB & B00000010 ){                                       //Is input 9 high?
     if(last_channel_2 == 0){                                   //Input 9 changed from 0 to 1.
       last_channel_2 = 1;                                      //Remember current input state.
       timer_2 = current_time;                                  //Set timer_2 to current_time.
@@ -399,7 +333,7 @@ ISR(PCINT0_vect){
     receiver_input[2] = current_time - timer_2;                //Channel 2 is current_time - timer_2.
   }
   //Channel 3=========================================
-  if(PINB & B00001000 ){                                       //Is input 10 high?
+  if(PINB & B00000100 ){                                       //Is input 10 high?
     if(last_channel_3 == 0){                                   //Input 10 changed from 0 to 1.
       last_channel_3 = 1;                                      //Remember current input state.
       timer_3 = current_time;                                  //Set timer_3 to current_time.
@@ -410,7 +344,7 @@ ISR(PCINT0_vect){
     receiver_input[3] = current_time - timer_3;                //Channel 3 is current_time - timer_3.
   }
   //Channel 4=========================================
-  if(PINB & B00010000 ){                                       //Is input 11 high?
+  if(PINB & B00001000 ){                                       //Is input 11 high?
     if(last_channel_4 == 0){                                   //Input 11 changed from 0 to 1.
       last_channel_4 = 1;                                      //Remember current input state.
       timer_4 = current_time;                                  //Set timer_4 to current_time.
@@ -430,7 +364,6 @@ void wait_for_receiver(){
     if(receiver_input[2] < 2100 && receiver_input[2] > 900)zero |= 0b00000010;  //Set bit 1 if the receiver pulse 2 is within the 900 - 2100 range
     if(receiver_input[3] < 2100 && receiver_input[3] > 900)zero |= 0b00000100;  //Set bit 2 if the receiver pulse 3 is within the 900 - 2100 range
     if(receiver_input[4] < 2100 && receiver_input[4] > 900)zero |= 0b00001000;  //Set bit 3 if the receiver pulse 4 is within the 900 - 2100 range
-    
     delay(500);                                                                 //Wait 500 milliseconds
   }
 }
@@ -497,72 +430,75 @@ void print_signals(){
 
 void esc_pulse_output(){
   zero_timer = micros();
-  PORTD |= B10011100;                                            //Set port 4, 5, 6 and 7 high at once
-
-  
+  PORTD |= B11110000;                                            //Set port 4, 5, 6 and 7 high at once
   timer_channel_1 = esc_1 + zero_timer;                          //Calculate the time when digital port 4 is set low.
   timer_channel_2 = esc_2 + zero_timer;                          //Calculate the time when digital port 5 is set low.
   timer_channel_3 = esc_3 + zero_timer;                          //Calculate the time when digital port 6 is set low.
   timer_channel_4 = esc_4 + zero_timer;                          //Calculate the time when digital port 7 is set low.
-  int iter = 0;
-  while(iter < 15){                                            //Execute the loop until digital port 4 to 7 is low.
+
+  while(PORTD >= 16){                                            //Execute the loop until digital port 4 to 7 is low.
     esc_loop_timer = micros();                                   //Check the current time.
-    if(timer_channel_1 <= esc_loop_timer){
-      PORTD &= B11101111;     //When the delay time is expired, digital port 4 is set low.
-      iter |= B00000001;
-    }
-    if(timer_channel_2 <= esc_loop_timer){
-      PORTD &= B11111011;     //When the delay time is expired, digital port 5 is set low.
-       iter |= B00000010;
-    }
-    if(timer_channel_3 <= esc_loop_timer){
-      PORTD &= B11110111;     //When the delay time is expired, digital port 6 is set low.
-       iter |= B00000100;
-    }
-    if(timer_channel_4 <= esc_loop_timer){
-      PORTD &= B01111111;     //When the delay time is expired, digital port 7 is set low.
-      iter |= B00001000;
-    }
+    if(timer_channel_1 <= esc_loop_timer)PORTD &= B11101111;     //When the delay time is expired, digital port 4 is set low.
+    if(timer_channel_2 <= esc_loop_timer)PORTD &= B11011111;     //When the delay time is expired, digital port 5 is set low.
+    if(timer_channel_3 <= esc_loop_timer)PORTD &= B10111111;     //When the delay time is expired, digital port 6 is set low.
+    if(timer_channel_4 <= esc_loop_timer)PORTD &= B01111111;     //When the delay time is expired, digital port 7 is set low.
   }
 }
 
 void set_gyro_registers(){
-  int status = IMU.begin();
-  if (status < 0) {
-    Serial.println("IMU initialization unsuccessful");
-    Serial.println("Check IMU wiring or try cycling power");
-    Serial.print("Status: ");
-    Serial.println(status);
-    while(1) {}
-  }
-  // setting the accelerometer full scale range to +/-8G 
-  IMU.setAccelRange(MPU9250::ACCEL_RANGE_8G);
-  // setting the gyroscope full scale range to +/-500 deg/s
-  IMU.setGyroRange(MPU9250::GYRO_RANGE_500DPS);
+  //Setup the MPU-6050
+  if(eeprom_data[31] == 1){
+    Wire.beginTransmission(gyro_address);                        //Start communication with the address found during search.
+    Wire.write(0x6B);                                            //We want to write to the PWR_MGMT_1 register (6B hex)
+    Wire.write(0x00);                                            //Set the register bits as 00000000 to activate the gyro
+    Wire.endTransmission();                                      //End the transmission with the gyro.
 
-  IMU.setDlpfBandwidth(MPU9250::DLPF_BANDWIDTH_41HZ);
-  
+    Wire.beginTransmission(gyro_address);                        //Start communication with the address found during search.
+    Wire.write(0x1B);                                            //We want to write to the GYRO_CONFIG register (1B hex)
+    Wire.write(0x08);                                            //Set the register bits as 00001000 (500dps full scale)
+    Wire.endTransmission();                                      //End the transmission with the gyro
+
+    Wire.beginTransmission(gyro_address);                        //Start communication with the address found during search.
+    Wire.write(0x1C);                                            //We want to write to the ACCEL_CONFIG register (1A hex)
+    Wire.write(0x10);                                            //Set the register bits as 00010000 (+/- 8g full scale range)
+    Wire.endTransmission();                                      //End the transmission with the gyro
+
+    //Let's perform a random register check to see if the values are written correct
+    Wire.beginTransmission(gyro_address);                        //Start communication with the address found during search
+    Wire.write(0x1B);                                            //Start reading @ register 0x1B
+    Wire.endTransmission();                                      //End the transmission
+    Wire.requestFrom(gyro_address, 1);                           //Request 1 bytes from the gyro
+    while(Wire.available() < 1);                                 //Wait until the 6 bytes are received
+    if(Wire.read() != 0x08){                                     //Check if the value is 0x08
+      digitalWrite(12,HIGH);                                     //Turn on the warning led
+      while(1)delay(10);                                         //Stay in this loop for ever
+    }
+
+    Wire.beginTransmission(gyro_address);                        //Start communication with the address found during search
+    Wire.write(0x1A);                                            //We want to write to the CONFIG register (1A hex)
+    Wire.write(0x03);                                            //Set the register bits as 00000011 (Set Digital Low Pass Filter to ~43Hz)
+    Wire.endTransmission();                                      //End the transmission with the gyro    
+
+  }  
 }
 
-float roll = 0;
-float pitch = 0;
-
 void gyro_signalen(){
-  IMU.readSensor();
   //Read the MPU-6050
-  
-  acc_axis[1] = IMU.getAccelX_mss();                    //Add the low and high byte to the acc_x variable.
-  acc_axis[2] = IMU.getAccelY_mss();                    //Add the low and high byte to the acc_y variable.
-  acc_axis[3] = IMU.getAccelZ_mss();                    //Add the low and high byte to the acc_z variable.
-  temperature = IMU.getTemperature_C();                    //Add the low and high byte to the temperature variable.
-  gyro_axis[1] = IMU.getGyroX_rads();                   //Read high and low part of the angular data.
-  gyro_axis[2] = IMU.getGyroY_rads();                   //Read high and low part of the angular data.
-  gyro_axis[3] = IMU.getGyroZ_rads();                   //Read high and low part of the angular data.
-  
-  magn_axis[1] = IMU.getMagX_uT();
-  magn_axis[2] = IMU.getMagY_uT();
-  magn_axis[3] = IMU.getMagZ_uT();
-  
+  if(eeprom_data[31] == 1){
+    Wire.beginTransmission(gyro_address);                        //Start communication with the gyro.
+    Wire.write(0x3B);                                            //Start reading @ register 43h and auto increment with every read.
+    Wire.endTransmission();                                      //End the transmission.
+    Wire.requestFrom(gyro_address,14);                           //Request 14 bytes from the gyro.
+    while(Wire.available() < 14);                                //Wait until the 14 bytes are received.
+    acc_axis[1] = Wire.read()<<8|Wire.read();                    //Add the low and high byte to the acc_x variable.
+    acc_axis[2] = Wire.read()<<8|Wire.read();                    //Add the low and high byte to the acc_y variable.
+    acc_axis[3] = Wire.read()<<8|Wire.read();                    //Add the low and high byte to the acc_z variable.
+    temperature = Wire.read()<<8|Wire.read();                    //Add the low and high byte to the temperature variable.
+    gyro_axis[1] = Wire.read()<<8|Wire.read();                   //Read high and low part of the angular data.
+    gyro_axis[2] = Wire.read()<<8|Wire.read();                   //Read high and low part of the angular data.
+    gyro_axis[3] = Wire.read()<<8|Wire.read();                   //Read high and low part of the angular data.
+  }
+
   if(cal_int == 2000){
     gyro_axis[1] -= gyro_axis_cal[1];                            //Only compensate after the calibration.
     gyro_axis[2] -= gyro_axis_cal[2];                            //Only compensate after the calibration.
@@ -581,5 +517,4 @@ void gyro_signalen(){
   if(eeprom_data[28] & 0b10000000)acc_y *= -1;                   //Invert acc_y if the MSB of EEPROM bit 28 is set.
   acc_z = acc_axis[eeprom_data[30] & 0b00000011];                //Set acc_z to the correct axis that was stored in the EEPROM.
   if(eeprom_data[30] & 0b10000000)acc_z *= -1;                   //Invert acc_z if the MSB of EEPROM bit 30 is set.
-
 }
