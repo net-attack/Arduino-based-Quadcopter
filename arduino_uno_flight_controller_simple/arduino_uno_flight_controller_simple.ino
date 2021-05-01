@@ -68,12 +68,13 @@ float pid_i_mem_yaw, pid_yaw_setpoint, gyro_yaw_input, pid_output_yaw, pid_last_
 float angle_roll_acc, angle_pitch_acc, angle_pitch, angle_roll;
 boolean gyro_angles_set;
 
+boolean debug_print = false;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Setup routine
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void setup(){
-  Serial.begin(57600);
-  Serial.println("Start Init");
+  if(debug_print) Serial.begin(57600);
+  if(debug_print) Serial.println("Start Init");
   //Copy the EEPROM data for fast access data.
   for(start = 0; start <= 35; start++)eeprom_data[start] = EEPROM.read(start);
   start = 0;                                                                //Set start back to zero.
@@ -84,7 +85,7 @@ void setup(){
   DDRD |= B10011100;                                                        //Configure digital poort 4, 5, 6 and 7 as output.
   DDRB |= B00100000;                                                        //Configure digital poort 12 and 13 as output.
 
-  Serial.println("Start LED On");
+  if(debug_print) Serial.println("Start LED On");
   //Use the led on the Arduino for startup indication.
   digitalWrite(LED_BUILTIN,HIGH);                                                    //Turn on the warning led.
 
@@ -96,16 +97,16 @@ void setup(){
   //if(eeprom_data[31] == 2 || eeprom_data[31] == 3)delay(10);
 
   set_gyro_registers();                                                     //Set the specific gyro registers.
-  Serial.print("Init Gyro : Wait 5 Seconds");
+  if(debug_print) Serial.print("Init Gyro : Wait 5 Seconds");
   for (cal_int = 0; cal_int < 1250 ; cal_int ++){                           //Wait 5 seconds before continuing.
     PORTD |= B10011100;                                                     //Set digital poort 4, 5, 6 and 7 high.
     delayMicroseconds(1000);                                                //Wait 1000us.
     PORTD &= B01100011;                                                     //Set digital poort 4, 5, 6 and 7 low.
     delayMicroseconds(3000);                                                //Wait 3000us.
   }
-  Serial.println("..End");
+  if(debug_print) Serial.println("..End");
 
-  Serial.print("Start Gyro Offset Calc");
+  if(debug_print) Serial.print("Start Gyro Offset Calc");
   //Let's take multiple gyro data samples so we can determine the average gyro offset (calibration).
   for (cal_int = 0; cal_int < 2000 ; cal_int ++){                           //Take 2000 readings for calibration.
     if(cal_int % 15 == 0)digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));                //Change the led status to indicate calibration.
@@ -120,20 +121,20 @@ void setup(){
     delay(3);                                                               //Wait 3 milliseconds before the next loop.
   }
 
-  Serial.println("..Finished");
+  if(debug_print) Serial.println("..Finished");
   //Now that we have 2000 measures, we need to devide by 2000 to get the average gyro offset.
   gyro_axis_cal[1] /= 2000;                                                 //Divide the roll total by 2000.
   gyro_axis_cal[2] /= 2000;                                                 //Divide the pitch total by 2000.
   gyro_axis_cal[3] /= 2000;                                                 //Divide the yaw total by 2000.
 
-  Serial.println("Setup Remote Registers");
+  if(debug_print) Serial.println("Setup Remote Registers");
   PCICR |= (1 << PCIE0);                                                                // set PCIE0 to enable PCMSK0 scan.
   PCMSK0 |= (1 << PCINT1);                                                              // set PCINT0 (digital input 8) to trigger an interrupt on state change.
   PCMSK0 |= (1 << PCINT2);                                                              // set PCINT1 (digital input 9)to trigger an interrupt on state change.
   PCMSK0 |= (1 << PCINT3);                                                              // set PCINT2 (digital input 10)to trigger an interrupt on state change.
   PCMSK0 |= (1 << PCINT4);                                                              // set PCINT3 (digital input 11)to trigger an interrupt on state change.
   
-  Serial.println("Wait for start");
+  if(debug_print) Serial.println("Wait for start");
   //Wait until the receiver is active and the throtle is set to the lower position.
   while(receiver_input_channel_3 < 990 || receiver_input_channel_3 > 1020 || receiver_input_channel_4 < 1400){
     
@@ -160,7 +161,7 @@ void setup(){
   battery_voltage = (analogRead(0) + 65) * 1.2317;
 
   loop_timer = micros();                                                    //Set the timer for the next loop.
-  Serial.println("Init done");
+  if(debug_print) Serial.println("Init done");
   //When everything is done, turn off the led.
   digitalWrite(LED_BUILTIN,LOW);                                                     //Turn off the warning led.
 }
@@ -168,33 +169,7 @@ void setup(){
 //Main program loop
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void loop(){
-  Serial.print(start);
-  Serial.print("\t");
   
-  Serial.print(receiver_input_channel_1);
-  Serial.print("\t");
-  
-  Serial.print(receiver_input_channel_2);
-  Serial.print("\t");
-  
-  Serial.print(receiver_input_channel_3);
-  Serial.print("\t");
-  
-  Serial.print(receiver_input_channel_4);
-  Serial.print("\t");
-
-  
-  Serial.print(esc_1);
-  Serial.print("\t");
-  
-  Serial.print(esc_2);
-  Serial.print("\t");
-  
-  Serial.print(esc_3);
-  Serial.print("\t");
-  
-  Serial.print(esc_4);
-  Serial.print("\n");
   //65.5 = 1 deg/sec (check the datasheet of the MPU-6050 for more information).
   gyro_roll_input = (gyro_roll_input * 0.7) + ((gyro_roll / 65.5) * 0.3);   //Gyro pid input is deg/sec.
   gyro_pitch_input = (gyro_pitch_input * 0.7) + ((gyro_pitch / 65.5) * 0.3);//Gyro pid input is deg/sec.
@@ -247,9 +222,9 @@ void loop(){
 
 
   //For starting the motors: throttle low and yaw left (step 1).
-  if(receiver_input_channel_3 < 1050 && receiver_input_channel_1 < 1050)start = 1;
+  if(receiver_input_channel_3 < 1050 && receiver_input_channel_4 < 1050)start = 1;
   //When yaw stick is back in the center position start the motors (step 2).
-  if(start == 1 && receiver_input_channel_3 < 1050 && receiver_input_channel_1 > 1450){
+  if(start == 1 && receiver_input_channel_3 < 1050 && receiver_input_channel_4 > 1450){
     start = 2;
 
     angle_pitch = angle_pitch_acc;                                          //Set the gyro pitch angle equal to the accelerometer pitch angle when the quadcopter is started.
@@ -265,7 +240,7 @@ void loop(){
     pid_last_yaw_d_error = 0;
   }
   //Stopping the motors: throttle low and yaw right.
-  if(start == 2 && receiver_input_channel_3 < 1050 && receiver_input_channel_1 > 1950)start = 0;
+  if(start == 2 && receiver_input_channel_3 < 1050 && receiver_input_channel_4 > 1950)start = 0;
 
   //The PID set point in degrees per second is determined by the roll receiver input.
   //In the case of deviding by 3 the max roll rate is aprox 164 degrees per second ( (500-8)/3 = 164d/s ).
@@ -319,11 +294,45 @@ void loop(){
     esc_4 = throttle - pid_output_pitch - pid_output_roll + pid_output_yaw; //Calculate the pulse for esc 4 (front-left - CW)
     */
 
-    //left right is 
-    esc_1 = throttle 
+    //left is positiv
+    int roll = 1500 - receiver_input_channel_1;
+    //forwards is positiv
+    int pitch = 1500 - receiver_input_channel_2;
     
-    /*
-
+    
+    //front right is 
+    esc_1 = throttle + roll - pitch;
+    //rear right is 
+    esc_2 = throttle + roll + pitch;
+    //rear left is 
+    esc_3 = throttle - roll + pitch;
+    //front left
+    esc_4 = throttle - roll - pitch;
+  if (debug_print){
+  Serial.print(start);
+  Serial.print("\t");
+  
+  Serial.print(roll);
+  Serial.print("\t");
+  
+  Serial.print(pitch);
+  Serial.print("\t");
+  
+  
+  
+  Serial.print(esc_1);
+  Serial.print("\t");
+  
+  Serial.print(esc_2);
+  Serial.print("\t");
+  
+  Serial.print(esc_3);
+  Serial.print("\t");
+  
+  Serial.print(esc_4);
+  Serial.print("\n");
+  }
+  /*
     if (battery_voltage < 1240 && battery_voltage > 800){                   //Is the battery connected?
       esc_1 += esc_1 * ((1240 - battery_voltage)/(float)3500);              //Compensate the esc-1 pulse for voltage drop.
       esc_2 += esc_2 * ((1240 - battery_voltage)/(float)3500);              //Compensate the esc-2 pulse for voltage drop.
@@ -331,10 +340,10 @@ void loop(){
       esc_4 += esc_4 * ((1240 - battery_voltage)/(float)3500);              //Compensate the esc-4 pulse for voltage drop.
     } 
     */
-    if (esc_1 < 1100) esc_1 = 1100;                                         //Keep the motors running.
-    if (esc_2 < 1100) esc_2 = 1100;                                         //Keep the motors running.
-    if (esc_3 < 1100) esc_3 = 1100;                                         //Keep the motors running.
-    if (esc_4 < 1100) esc_4 = 1100;                                         //Keep the motors running.
+    if (esc_1 < 1000) esc_1 = 1000;                                         //Keep the motors running.
+    if (esc_2 < 1000) esc_2 = 1000;                                         //Keep the motors running.
+    if (esc_3 < 1000) esc_3 = 1000;                                         //Keep the motors running.
+    if (esc_4 < 1000) esc_4 = 1000;                                         //Keep the motors running.
 
     if(esc_1 > 2000)esc_1 = 2000;                                           //Limit the esc-1 pulse to 2000us.
     if(esc_2 > 2000)esc_2 = 2000;                                           //Limit the esc-2 pulse to 2000us.
@@ -343,10 +352,10 @@ void loop(){
   }
 
   else{
-    esc_1 = 1000;                                                           //If start is not 2 keep a 1000us pulse for ess-1.
-    esc_2 = 1000;                                                           //If start is not 2 keep a 1000us pulse for ess-2.
-    esc_3 = 1000;                                                           //If start is not 2 keep a 1000us pulse for ess-3.
-    esc_4 = 1000;                                                           //If start is not 2 keep a 1000us pulse for ess-4.
+    esc_1 = 990;                                                           //If start is not 2 keep a 1000us pulse for ess-1.
+    esc_2 = 990;                                                           //If start is not 2 keep a 1000us pulse for ess-2.
+    esc_3 = 990;                                                           //If start is not 2 keep a 1000us pulse for ess-3.
+    esc_4 = 990;                                                           //If start is not 2 keep a 1000us pulse for ess-4.
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
