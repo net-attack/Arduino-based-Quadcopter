@@ -53,6 +53,8 @@ jobs:
         run: |
           arduino-cli core update-index
           arduino-cli core install ${{ matrix.arduino-platform }}
+          arduino-cli lib install MPU9250
+          arduino-cli lib install EEPROM
 
       # Finally, we compile the sketch, using the FQBN that was set
       # in the build matrix.
