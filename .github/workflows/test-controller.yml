@@ -1,5 +1,5 @@
 # This is the name of the workflow, visible on GitHub UI.
-name: Controller Test
+name: Compile Test
 
 # Here we tell GitHub to run the workflow when a commit
 # is pushed or a Pull Request is opened.
@@ -59,3 +59,7 @@ jobs:
       # in the build matrix.
       - name: Compile Sketch
         run: arduino-cli compile --fqbn ${{ matrix.fqbn }} ./arduino_uno_flight_controller_simple
+      - name: Compile Sketch
+        run: arduino-cli compile --fqbn ${{ matrix.fqbn }} ./arduino_uno_sensor_calibration
+      - name: Compile Sketch
+        run: arduino-cli compile --fqbn ${{ matrix.fqbn }} ./arduino_uno_esc_calibration
