@@ -17,12 +17,13 @@ The arduino UNO ist located in the middle of the multicopter. The orientation is
 It has a connection to the remote sensor and reads in the pwm control signals from the remote control. Via I2C a MPU6050 is connected and can provide gyro and accelerometer data. The power supply is done via a power separation board to spread the power supply to every engine.
 
 1. **Power Supply**
-The power is provided via a 11.7V 3 Cell LIPO accumulator
-The voltage is send to the esc and is converted to 5V to provide power to the arduino and the remote receiver.
+ 
+  The power is provided via a 11.7V 3 Cell LIPO accumulator
+  The voltage is send to the esc and is converted to 5V to provide power to the arduino and the remote receiver.
 
 1. **ESC Signal Connection**
-The connection of the esc cables to the sensor board is shown in the next image:
-![](doc/esc_connection.JPEG)
+  The connection of the esc cables to the sensor board is shown in the next image:
+  ![](doc/esc_connection.JPEG)
 
 |Front Right | Rear Right| Rear Left| Front Left |
 |---|---|---|----|
