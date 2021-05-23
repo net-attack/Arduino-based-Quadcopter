@@ -57,3 +57,9 @@ The signal of the remote receiver are processed via interrupt handling on the ar
 1. [Arduino Flight Controller Simple](./arduino_uno_flight_controller_simple)
 1. [Arduino Flight Controller](./arduino_uno_flight_controller)
 
+
+
+
+# Safety Ideas
+
+1. [FMEA](doc/risk-table-fmea.md)
