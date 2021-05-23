@@ -57,9 +57,11 @@ jobs:
 
       # Finally, we compile the sketch, using the FQBN that was set
       # in the build matrix.
-      - name: Compile Sketch
+      - name: Compile FC 
+        run: arduino-cli compile --fqbn ${{ matrix.fqbn }} ./arduino_uno_flight_controller
+      - name: Compile FC Simple
         run: arduino-cli compile --fqbn ${{ matrix.fqbn }} ./arduino_uno_flight_controller_simple
-      - name: Compile Sketch
+      - name: Compile Sensor
         run: arduino-cli compile --fqbn ${{ matrix.fqbn }} ./arduino_uno_sensor_calibration
-      - name: Compile Sketch
+      - name: Compile ESC
         run: arduino-cli compile --fqbn ${{ matrix.fqbn }} ./arduino_uno_esc_calibration
