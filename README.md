@@ -10,7 +10,7 @@
 |  | BACK                               |                |
 |----|-------------------------------------------|--------------------|
 | **RIGHT**   | ![](https://electronoobs.com/images/Robotica/tut_5/full_flight_controller.png)|**LEFT**  |
-| | <center>**FRONT**</center>||
+| | <center> **FRONT** </center>||
 
 ### Details
 The arduino UNO ist located in the middle of the multicopter. The orientation is shown in the image. The usb port is the backside of the drone.
@@ -23,7 +23,12 @@ The voltage is send to the esc and is converted to 5V to provide power to the ar
 1. **ESC Signal Connection**
 The connection of the esc cables to the sensor board is shown in the next image:
 ![](doc/esc_connection.JPEG)
-|Front Right (*GPIO 4*)  | Rear Right (*GPIO 5*)| Rear Left (*GPIO 6*)| Front Left (*GPIO 7*) |
+
+|Front Right | Rear Right| Rear Left| Front Left |
+|---|---|---|----|
+| *GPIO 4*|*GPIO 5*|*GPIO 6*|*GPIO 7*|
+| CCW ⭯| CW ⭮ | CCW ⭯| CW ⭮ |
+
 1. **Remote Signal Connection**
 The signal of the remote receiver are processed via interrupt handling on the arduino, this is why i need to attach the ports to specific pins on the UNO. Because of a broken pin at GPIO8 it was not possible to use the same sketch as YMFC, so i need to shift the GPIO Interrupts by one. By this i was not able to use the remote LED on *GPIO 12*.
 
