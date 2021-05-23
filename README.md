@@ -40,23 +40,16 @@ The signal of the remote receiver are processed via interrupt handling on the ar
 
 
 
-![Arduino Sensor Calibration Test](https://github.com/net-attack/drone_controller/actions/workflows/test-setup.yml/badge.svg)
-
-![Arduino ESC Calibration Test](https://github.com/net-attack/drone_controller/actions/workflows/test-calibration.yml/badge.svg)
-
-![Arduino Flight Controller Test](https://github.com/net-attack/drone_controller/actions/workflows/test-controller.yml/badge.svg)
-
-
-
-
-
 
 # Software parts:
 
 1. [Arduino Sensor Calibration](./arduino_uno_sensor_calibration)
-1. [Arduino ESC Calibration](./arduino_uno_esc_calibration)
-1. [Arduino Flight Controller Simple](./arduino_uno_flight_controller_simple)
-1. [Arduino Flight Controller](./arduino_uno_flight_controller)
+   ![Arduino Sensor Calibration Test](https://github.com/net-attack/drone_controller/actions/workflows/test-setup.yml/badge.svg)
+3. [Arduino ESC Calibration](./arduino_uno_esc_calibration)
+   ![Arduino ESC Calibration Test](https://github.com/net-attack/drone_controller/actions/workflows/test-calibration.yml/badge.svg)
+4. [Arduino Flight Controller Simple](./arduino_uno_flight_controller_simple)
+   ![Arduino Flight Controller Test](https://github.com/net-attack/drone_controller/actions/workflows/test-controller.yml/badge.svg)
+5. [Arduino Flight Controller](./arduino_uno_flight_controller)
 
 
 
