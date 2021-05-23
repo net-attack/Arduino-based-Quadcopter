@@ -54,7 +54,7 @@ jobs:
           arduino-cli core update-index
           arduino-cli core install ${{ matrix.arduino-platform }}
           arduino-cli lib install MPU9250
-          arduino-cli lib list
+          arduino-cli lib list --all
 
       # Finally, we compile the sketch, using the FQBN that was set
       # in the build matrix.
