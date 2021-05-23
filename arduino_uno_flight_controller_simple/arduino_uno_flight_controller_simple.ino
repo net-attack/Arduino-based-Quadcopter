@@ -245,10 +245,10 @@ void loop(){
 
 
   //For starting the motors: throttle low and yaw left (step 1).
-  if(receiver_input_channel_3 < 1050 && receiver_input_channel_4 < 1050)start = 1;
+  if(receiver_input_channel_3 < 1050 && receiver_input_channel_4 < 1050)start = 1; //[REQ2]
   //When yaw stick is back in the center position start the motors (step 2).
   if(start == 1 && receiver_input_channel_3 < 1050 && receiver_input_channel_4 > 1450){
-    start = 2;
+    start = 2;//[REQ3]
 
     angle_pitch = angle_pitch_acc;                                          //Set the gyro pitch angle equal to the accelerometer pitch angle when the quadcopter is started.
     angle_roll = angle_roll_acc;                                            //Set the gyro roll angle equal to the accelerometer roll angle when the quadcopter is started.
@@ -324,7 +324,7 @@ void loop(){
     //forwards is positiv
     int yaw = 1500 - receiver_input_channel_4;
 
-    if( throttle < 1050) yaw = 0;
+    if( throttle < 1050) yaw = 0; //[REQ1]
       
     //front right is 
     esc_1 = throttle + roll - pitch + yaw;
