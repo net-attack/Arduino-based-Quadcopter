@@ -62,9 +62,16 @@ The signal of the remote receiver are processed via interrupt handling on the ar
 
 # Safety Ideas
 
-1. [<span style="color: orange;font-weight:bold">REQ1</span>] MC must be able to turn of startup state without motors are turning : <span style="color: green;font-weight:bold">Checked</span>
-1. [<span style="color: orange;font-weight:bold">REQ2</span>] MC should never start rotors: <span style="color: green;font-weight:bold">Checked</span>
-1. [<span style="color: orange;font-weight:bold">REQ3</span>] MC should start rotors only if throttle not zero and modus in start: <span style="color: green;font-weight:bold">Checked</span>
-1. [<span style="color: orange;font-weight:bold">REQ4</span>] MC must not be able to turn state to shutdown while flying : <span style="color: red;font-weight:bold"> UNCHECKED </span>
+1. [**REQ1**] MC must be able to turn of startup state without motors are turning : **Checked**
+1. [**REQ2**] MC should never start rotors: **Checked**
+1. [**REQ3**] MC should start rotors only if throttle not zero and modus in start: **Checked**
+1. [**REQ4**] MC must not be able to turn state to shutdown while flying : **UNCHECKED**!!!
+
+```diff
++ [REQ1] MC must be able to turn of startup state without motors are turning : Checked 
++ [REQ2] MC should never start rotors: Checked
++ [REQ3] MC should start rotors only if throttle not zero and modus in start: Checked
+- [REQ4] MC must not be able to turn state to shutdown while flying : UNCHECKED
+```
 
 **[FMEA](doc/risk-table-fmea.md)** Risk Table
