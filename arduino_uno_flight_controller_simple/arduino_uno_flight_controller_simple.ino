@@ -165,6 +165,29 @@ void setup(){
   //When everything is done, turn off the led.
   digitalWrite(LED_BUILTIN,LOW);                                                     //Turn off the warning led.
 }
+
+
+
+
+
+
+int MINSPEED = 950;
+int MAXSPEED = 2000;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Main program loop
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -286,7 +309,7 @@ void loop(){
   throttle = receiver_input_channel_3;                                      //We need the throttle signal as a base signal.
 
   if (start == 2){                                                          //The motors are started.
-    if (throttle > 1800) throttle = 1800;                                   //We need some room to keep full control at full throttle.
+    if (throttle > 2000) throttle = 2000;                                   //We need some room to keep full control at full throttle.
     /*
     esc_1 = throttle - pid_output_pitch + pid_output_roll - pid_output_yaw; //Calculate the pulse for esc 1 (front-right - CCW)
     esc_2 = throttle + pid_output_pitch + pid_output_roll + pid_output_yaw; //Calculate the pulse for esc 2 (rear-right - CW)
@@ -298,16 +321,21 @@ void loop(){
     int roll = 1500 - receiver_input_channel_1;
     //forwards is positiv
     int pitch = 1500 - receiver_input_channel_2;
-    
-    
+    //forwards is positiv
+    int yaw = 1500 - receiver_input_channel_4;
+
+    if( throttle < 1050) yaw = 0;
+      
     //front right is 
-    esc_1 = throttle + roll - pitch;
+    esc_1 = throttle + roll - pitch + yaw;
     //rear right is 
-    esc_2 = throttle + roll + pitch;
+    esc_2 = throttle + roll + pitch - yaw;
     //rear left is 
-    esc_3 = throttle - roll + pitch;
+    esc_3 = throttle - roll + pitch + yaw;
     //front left
-    esc_4 = throttle - roll - pitch;
+    esc_4 = throttle - roll - pitch - yaw;
+
+    
   if (debug_print){
   Serial.print(start);
   Serial.print("\t");
@@ -340,22 +368,24 @@ void loop(){
       esc_4 += esc_4 * ((1240 - battery_voltage)/(float)3500);              //Compensate the esc-4 pulse for voltage drop.
     } 
     */
-    if (esc_1 < 1000) esc_1 = 1000;                                         //Keep the motors running.
-    if (esc_2 < 1000) esc_2 = 1000;                                         //Keep the motors running.
-    if (esc_3 < 1000) esc_3 = 1000;                                         //Keep the motors running.
-    if (esc_4 < 1000) esc_4 = 1000;                                         //Keep the motors running.
+    
+    
+    if (esc_1 < MINSPEED) esc_1 = MINSPEED;                                         //Keep the motors running.
+    if (esc_2 < MINSPEED) esc_2 = MINSPEED;                                         //Keep the motors running.
+    if (esc_3 < MINSPEED) esc_3 = MINSPEED;                                         //Keep the motors running.
+    if (esc_4 < MINSPEED) esc_4 = MINSPEED;                                         //Keep the motors running.
 
-    if(esc_1 > 2000)esc_1 = 2000;                                           //Limit the esc-1 pulse to 2000us.
-    if(esc_2 > 2000)esc_2 = 2000;                                           //Limit the esc-2 pulse to 2000us.
-    if(esc_3 > 2000)esc_3 = 2000;                                           //Limit the esc-3 pulse to 2000us.
-    if(esc_4 > 2000)esc_4 = 2000;                                           //Limit the esc-4 pulse to 2000us.  
+    if(esc_1 > MAXSPEED)esc_1 = MAXSPEED;                                           //Limit the esc-1 pulse to 2000us.
+    if(esc_2 > MAXSPEED)esc_2 = MAXSPEED;                                           //Limit the esc-2 pulse to 2000us.
+    if(esc_3 > MAXSPEED)esc_3 = MAXSPEED;                                           //Limit the esc-3 pulse to 2000us.
+    if(esc_4 > MAXSPEED)esc_4 = MAXSPEED;                                           //Limit the esc-4 pulse to 2000us.  
   }
 
   else{
-    esc_1 = 990;                                                           //If start is not 2 keep a 1000us pulse for ess-1.
-    esc_2 = 990;                                                           //If start is not 2 keep a 1000us pulse for ess-2.
-    esc_3 = 990;                                                           //If start is not 2 keep a 1000us pulse for ess-3.
-    esc_4 = 990;                                                           //If start is not 2 keep a 1000us pulse for ess-4.
+    esc_1 = MINSPEED;                                                           //If start is not 2 keep a 1000us pulse for ess-1.
+    esc_2 = MINSPEED;                                                           //If start is not 2 keep a 1000us pulse for ess-2.
+    esc_3 = MINSPEED;                                                           //If start is not 2 keep a 1000us pulse for ess-3.
+    esc_4 = MINSPEED;                                                           //If start is not 2 keep a 1000us pulse for ess-4.
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -369,23 +399,25 @@ void loop(){
   //that the loop time is still 4000us and no longer! More information can be found on 
   //the Q&A page: 
   //! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
-    
+  gyro_signalen();  
   if(micros() - loop_timer > 4050)digitalWrite(13, HIGH);                   //Turn on the LED if the loop time exceeds 4050us.
   
   //All the information for controlling the motor's is available.
   //The refresh rate is 250Hz. That means the esc's need there pulse every 4ms.
   while(micros() - loop_timer < 4000);                                      //We wait until 4000us are passed.
+  
   loop_timer = micros();                                                    //Set the timer for the next loop.
 
-  PORTD |= B10011100;                                                       //Set digital outputs 4,5,6 and 7 high.
   timer_channel_1 = esc_1 + loop_timer;                                     //Calculate the time of the faling edge of the esc-1 pulse.
   timer_channel_2 = esc_2 + loop_timer;                                     //Calculate the time of the faling edge of the esc-2 pulse.
   timer_channel_3 = esc_3 + loop_timer;                                     //Calculate the time of the faling edge of the esc-3 pulse.
   timer_channel_4 = esc_4 + loop_timer;                                     //Calculate the time of the faling edge of the esc-4 pulse.
   
+  
+  PORTD |= B10011100;                                                       //Set digital outputs 4,5,6 and 7 high.
+  
   //There is always 1000us of spare time. So let's do something usefull that is very time consuming.
   //Get the current gyro and receiver data and scale it to degrees per second for the pid calculations.
-  gyro_signalen();
   int c = 0;
   while(c < 15){                                                       //Stay in this loop until output 4,5,6 and 7 are low.
     esc_loop_timer = micros();                                              //Read the current time.
@@ -472,7 +504,7 @@ void gyro_signalen(){
   acc_axis[1] = IMU.getAccelX_mss();                    //Add the low and high byte to the acc_x variable.
   acc_axis[2] = IMU.getAccelY_mss();                    //Add the low and high byte to the acc_y variable.
   acc_axis[3] = IMU.getAccelZ_mss();                    //Add the low and high byte to the acc_z variable.
-  temperature = IMU.getTemperature_C();                    //Add the low and high byte to the temperature variable.
+  //temperature = IMU.getTemperature_C();                    //Add the low and high byte to the temperature variable.
   gyro_axis[1] = IMU.getGyroX_rads();                   //Read high and low part of the angular data.
   gyro_axis[2] = IMU.getGyroY_rads();                   //Read high and low part of the angular data.
   gyro_axis[3] = IMU.getGyroZ_rads();                   //Read high and low part of the angular data.

@@ -1,0 +1,26 @@
+@startuml arduino_uno_flight_controller_simple_setup
+start
+
+if (Debug enabled?) then (yes)
+  :Start Serial;
+else (no)
+endif
+ : Read EEPROM Values;
+ : Set __start__ =0;
+ : Set pin configuration;
+ : Set signal delay to 1000 us;
+ : Wait 5 seconds;
+ : Start gyro calibration;
+ : Collect 2000 gyro values;
+ : Norm gyro values and set as offset;
+ : Configure Remote interrupt registers;
+ repeat
+  :read remote data;
+repeat while (not in off position?)
+
+
+ 
+
+
+stop
+@enduml
