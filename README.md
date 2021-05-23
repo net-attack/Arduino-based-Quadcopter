@@ -48,7 +48,7 @@ The signal of the remote receiver are processed via interrupt handling on the ar
 # Software parts:
 
 1. [Arduino Sensor Calibration](./arduino_uno_sensor_calibration)
-1. [Arduino ESC Calibration](./arduino_uno_esc_calibration/README.md)
-1. [Arduino Flight Controller Simple](./arduino_uno_flight_controller_simple/README.md)
-1. [Arduino Flight Controller](./arduino_uno_flight_controller/README.md)
+1. [Arduino ESC Calibration](./arduino_uno_esc_calibration)
+1. [Arduino Flight Controller Simple](./arduino_uno_flight_controller_simple)
+1. [Arduino Flight Controller](./arduino_uno_flight_controller)
 
