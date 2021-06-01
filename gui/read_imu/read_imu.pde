@@ -33,13 +33,9 @@ void draw() {
       if (video.available()) {
         video.read();
         image(video, 0, 0);
-        f(inString != null) output.print(inString);
         saveFrame("video/record_#####.jpg");
       }
-      if(inString != null){
-        
-            print(inString); //<>//
-      }
+
     }
     
     }
@@ -51,11 +47,11 @@ void draw() {
 }
 
 boolean newdata = false;
-String inString; //<>//
+String inString;
 int counter = 0;
 
 void serialEvent (Serial myPort) {
-  // get the ASCII string:
+  // get the ASCII string: //<>//
   inString = myPort.readStringUntil('\n');
   newdata = true;
   
