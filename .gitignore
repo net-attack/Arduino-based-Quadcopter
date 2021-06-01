@@ -50,3 +50,9 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+
+
+#Images 
+gui/read_imu/video/*
+*.mov
