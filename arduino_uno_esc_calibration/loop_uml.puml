@@ -1,5 +1,0 @@
-@startuml arduino_uno_esc_calibration_loop
-start
-: Test;
-stop
-@enduml
